@@ -28,6 +28,7 @@ export default function Home() {
             <Link to="/player-search" className="hover:text-white">Players</Link>
             <a className="hover:text-white">Rankings</a>
             <a className="hover:text-white">Draft</a>
+            <Link to="/odds" className="hover:text-white">Odds</Link>
             <a className="hover:text-white">FAQ</a>
           </div>
 
