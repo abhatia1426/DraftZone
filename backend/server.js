@@ -5,7 +5,7 @@ const cors = require('cors');
 const app = express();
 const PORT = 8080;
 
-// Middleware
+
 app.use(cors());
 app.use(express.json());
 
@@ -26,13 +26,13 @@ app.get('/', (req, res) => {
 
 // Start Server
 const server = app.listen(PORT, () => {
-  console.log(`✅ Server is RUNNING on http://localhost:${PORT}`);
+  console.log(`Server is RUNNING on http://localhost:${PORT}`);
   console.log("   (Keep this terminal open!)");
 });
 
 // Safety: Log if it crashes
 process.on('unhandledRejection', (err) => {
-  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.log('UNHANDLED REJECTION! Shutting down...');
   console.log(err.name, err.message);
   server.close(() => {
     process.exit(1);
