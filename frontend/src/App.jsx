@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Navigate, useNavigate, Link } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, Link, useLocation } from "react-router-dom";
 
 import Login from "./pages/Login"; 
 import AdminPanel from "./pages/AdminPanel";
@@ -11,6 +11,7 @@ import DraftSimulator from "./pages/DraftSimulator";
 export default function App() {
   const [user, setUser] = useState(null); 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -20,18 +21,25 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
-    navigate('/');
+    navigate('/'); // Goes back to home page
   };
+
+  // Hide the app navbar on home and login pages (they have their own navbars)
+  const hideNavbar = location.pathname === '/' || location.pathname === '/login';
 
   return (
     <div className="min-h-screen bg-[#0B0D12] text-white font-sans">
-      <Navbar user={user} onLogout={handleLogout} />
+      {/* Only show app navbar when NOT on home or login pages */}
+      {!hideNavbar && <Navbar user={user} onLogout={handleLogout} />}
 
       <Routes>
-        <Route path="/" element={<Login onLogin={handleLogin} />} />
+        {/* Home is the landing page */}
+        <Route path="/" element={<Home />} />
+        
+        {/* Login page */}
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         
         {/* Public Routes */}
-        <Route path="/home" element={<Home />} />
         <Route path="/odds" element={<Odds />} />
 
         {/* Protected Routes */}
@@ -52,7 +60,7 @@ export default function App() {
 }
 
 const ProtectedRoute = ({ user, allowedRole, children }) => {
-  if (!user) return <Navigate to="/" />;
+  if (!user) return <Navigate to="/login" />; // Redirect to /login instead of /
   if (allowedRole && user.role !== allowedRole) return <Navigate to="/draft" />;
   return children;
 };
@@ -63,9 +71,9 @@ const Navbar = ({ user, onLogout }) => {
   return (
     <nav className="bg-[#111318] border-b border-gray-800 p-4 flex justify-between items-center sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="text-xl font-black tracking-tighter">
+        <Link to="/" className="text-xl font-black tracking-tighter hover:opacity-80 transition-opacity">
           DRAFT<span className="text-blue-600">ZONE</span>
-        </div>
+        </Link>
         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
           user.role === 'admin' ? 'bg-red-600' : 'bg-blue-600'
         }`}>
@@ -79,7 +87,7 @@ const Navbar = ({ user, onLogout }) => {
         )}
         <Link to="/draft" className="text-gray-400 hover:text-white">DRAFT</Link>
         <Link to="/player-search" className="text-gray-400 hover:text-white">SEARCH</Link>
-        <Link to="/home" className="text-gray-400 hover:text-white">HOME</Link>
+        <Link to="/" className="text-gray-400 hover:text-white">HOME</Link>
         <Link to="/odds" className="text-gray-400 hover:text-white">ODDS</Link>
         <div className="h-4 w-px bg-gray-700 mx-2"></div>
         <button onClick={onLogout} className="text-gray-500 hover:text-white">LOGOUT</button>

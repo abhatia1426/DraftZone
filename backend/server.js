@@ -5,16 +5,17 @@ const cors = require('cors');
 const app = express();
 const PORT = 8080;
 
-
 app.use(cors());
 app.use(express.json());
 
 // Import Routes
+const oddsRoutes = require('./routes/odds');
 const playerRoutes = require('./routes/playerRoutes');
 const aiRoutes = require('./routes/aIRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 // Use Routes
+app.use('/api', oddsRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
