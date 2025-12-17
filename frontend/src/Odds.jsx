@@ -50,7 +50,7 @@ export default function Odds() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/odds");
+      const res = await fetch("http://localhost:8080/api/odds");
       const data = await res.json();
       setGames(data);
     } catch (err) {
@@ -65,51 +65,78 @@ export default function Odds() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#0f1f33] text-white">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#0a1628] via-[#0f1f33] to-[#0a1628] text-white">
 
       {/* NAVBAR */}
-      <nav className="bg-[#0f1f33]/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-50 border-b border-[#1DB954]/40">
+      <nav className="bg-[#0f1f33] fixed top-0 left-0 right-0 z-50 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
           <div className="flex items-center gap-3">
             <img
               src={DraftLogo}
-              className="h-12 w-12 rounded-full border border-[#1DB954]"
+              className="h-12 w-12 rounded-full"
               alt="Fantasy Football Logo"
             />
-            <span className="text-2xl font-bold tracking-wide text-[#1DB954]">
-              DraftZone
+            <span className="text-2xl font-bold tracking-wide">
+              <span className="text-white">DRAFT</span>
+              <span className="text-[#1DB954]">ZONE</span>
             </span>
           </div>
 
-          {/* Links */}
-          <div className="hidden md:flex gap-8 text-gray-300 text-lg">
-            <Link to="/" className="hover:text-white">Home</Link>
-            <Link to="/player-search" className="hover:text-white">Players</Link>
-            <a className="hover:text-white">Rankings</a>
-            <a className="hover:text-white">Draft</a>
-            <Link to="/odds" className="hover:text-white">Odds</Link>
-            <a className="hover:text-white">FAQ</a>
+          <div className="hidden md:flex gap-8 text-gray-400 text-sm font-semibold tracking-wider">
+            <Link to="/" className="hover:text-white transition-colors">
+              HOME
+            </Link>
+            <Link to="/player-search" className="hover:text-white transition-colors">
+              PLAYERS
+            </Link>
+            <a className="hover:text-white transition-colors cursor-pointer">
+              DRAFT
+            </a>
+            <Link to="/odds" className="text-white">
+              ODDS
+            </Link>
+            <a className="hover:text-white transition-colors cursor-pointer">
+              LOGIN & SIGNUP
+            </a>
           </div>
 
         </div>
       </nav>
-      <div className="pt-32 px-10">
 
-        <h1 className="text-4xl font-bold mb-6 text-[#1DB954]">
-          Live NFL Betting Odds
-        </h1>
+      <div className="pt-32 px-6 md:px-10 max-w-7xl mx-auto pb-20">
+
+        <div className="mb-10">
+          <h1 className="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-[#1DB954] via-[#1ed760] to-[#1DB954] bg-clip-text text-transparent animate-gradient">
+            Live NFL Betting Odds
+          </h1>
+          <p className="text-gray-400 text-lg">Real-time odds from top sportsbooks</p>
+        </div>
 
         {loading && (
-          <p className="text-gray-400 text-xl animate-pulse">Loading odds...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative w-20 h-20 mb-6">
+              <div className="absolute inset-0 border-4 border-[#1DB954]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#1DB954] rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <p className="text-gray-400 text-xl animate-pulse">Loading live odds...</p>
+          </div>
         )}
 
         {!loading && games.length === 0 && (
-          <p className="text-gray-400">No odds available right now.</p>
+          <div className="text-center py-20">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#1DB954]/10 mb-6">
+              <svg className="w-10 h-10 text-[#1DB954]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-400 text-xl">No odds available right now.</p>
+            <p className="text-gray-500 mt-2">Check back soon for upcoming games!</p>
+          </div>
         )}
 
         {!loading && games.length > 0 && (
-          <div className="space-y-10">
+          <div className="grid grid-cols-1 gap-8">
 
             {games.map((game, index) => {
               const markets = game.bookmakers?.[0]?.markets || [];
@@ -120,76 +147,135 @@ export default function Odds() {
               return (
                 <div
                   key={index}
-                  className="p-6 bg-[#16233b] rounded-2xl border border-[#1DB954]/40"
+                  className="group relative p-8 bg-gradient-to-br from-[#16233b] to-[#1a2942] rounded-3xl border border-[#1DB954]/30 hover:border-[#1DB954]/60 transition-all duration-300 hover:shadow-2xl hover:shadow-[#1DB954]/20 hover:-translate-y-1"
                 >
-
-                  {/* TEAM LOGOS + TITLE */}
-                  <h2 className="text-2xl mb-4 font-semibold flex items-center gap-4">
-                    <img src={TEAM_LOGOS[game.away_team]} className="h-10 w-10 rounded-full border border-[#1DB954]/60" />
-                    {game.away_team}
-                    <span className="text-gray-400 mx-2">@</span>
-                    <img src={TEAM_LOGOS[game.home_team]} className="h-10 w-10 rounded-full border border-[#1DB954]/60" />
-                    {game.home_team}
-                  </h2>
-
-                  <div className="space-y-6">
-
-                    {/* MONEYLINE */}
-                    {moneyline && (
-                      <div>
-                        <p className="text-gray-300 font-semibold mb-1">Moneyline</p>
-                        {moneyline.outcomes.map((team, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-[#1DB954]/20 p-3 rounded-xl mb-2 flex justify-between"
-                          >
-                            <span>{team.name}: {team.price}</span>
-                            <span className="text-sm text-gray-300">
-                              Win %: {calcWinProb(team.price)}
-                            </span>
-                          </div>
-                        ))}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1DB954]/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  
+                  <div className="relative z-10">
+                    {/* TEAM MATCHUP */}
+                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-700/50">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-[#1DB954] blur-lg opacity-20"></div>
+                          <img 
+                            src={TEAM_LOGOS[game.away_team]} 
+                            className="relative h-16 w-16 rounded-xl border-2 border-[#1DB954]/40 bg-white/5 p-2 backdrop-blur-sm" 
+                            alt={game.away_team}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-400 mb-1">Away</p>
+                          <h3 className="text-2xl font-bold">{game.away_team}</h3>
+                        </div>
                       </div>
-                    )}
 
-                    {/* SPREADS */}
-                    {spreads && (
-                      <div>
-                        <p className="text-gray-300 font-semibold mb-1">Point Spread</p>
-                        {spreads.outcomes.map((team, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-[#1DB954]/20 p-3 rounded-xl mb-2 flex justify-between"
-                          >
-                            <span>
-                              {team.name}: {team.point > 0 ? "+" : ""}{team.point} ({team.price})
-                            </span>
-                            <span className="text-sm text-gray-300">
-                              Win %: {calcWinProb(team.price)}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-4 px-6 py-3 bg-[#1DB954]/10 rounded-full border border-[#1DB954]/30">
+                        <span className="text-2xl font-black text-[#1DB954]">VS</span>
                       </div>
-                    )}
 
-                    {/* TOTALS */}
-                    {totals && (
-                      <div>
-                        <p className="text-gray-300 font-semibold mb-1">Totals (Over/Under)</p>
-                        {totals.outcomes.map((line, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-[#1DB954]/20 p-3 rounded-xl mb-2 flex justify-between"
-                          >
-                            <span>{line.name} {line.point} ({line.price})</span>
-                            <span className="text-sm text-gray-300">
-                              Win %: {calcWinProb(line.price)}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-4 flex-row-reverse">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-[#1DB954] blur-lg opacity-20"></div>
+                          <img 
+                            src={TEAM_LOGOS[game.home_team]} 
+                            className="relative h-16 w-16 rounded-xl border-2 border-[#1DB954]/40 bg-white/5 p-2 backdrop-blur-sm" 
+                            alt={game.home_team}
+                          />
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-400 mb-1">Home</p>
+                          <h3 className="text-2xl font-bold">{game.home_team}</h3>
+                        </div>
                       </div>
-                    )}
+                    </div>
 
+                    {/* BETTING MARKETS */}
+                    <div className="grid md:grid-cols-3 gap-6">
+
+                      {/* MONEYLINE */}
+                      {moneyline && (
+                        <div className="bg-gradient-to-br from-[#0f1f33] to-[#16233b] p-6 rounded-2xl border border-gray-700/50">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-2 h-2 rounded-full bg-[#1DB954]"></div>
+                            <p className="text-gray-300 font-bold text-lg">Moneyline</p>
+                          </div>
+                          {moneyline.outcomes.map((team, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-[#1DB954]/10 hover:bg-[#1DB954]/20 p-4 rounded-xl mb-3 transition-all duration-200 cursor-pointer border border-[#1DB954]/20 hover:border-[#1DB954]/40"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-white">{team.name}</span>
+                                <span className="text-2xl font-bold text-[#1DB954]">{team.price > 0 ? '+' : ''}{team.price}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-gray-400">Win Probability:</span>
+                                <span className="font-semibold text-[#1DB954]">{calcWinProb(team.price)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* SPREADS */}
+                      {spreads && (
+                        <div className="bg-gradient-to-br from-[#0f1f33] to-[#16233b] p-6 rounded-2xl border border-gray-700/50">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-2 h-2 rounded-full bg-[#1DB954]"></div>
+                            <p className="text-gray-300 font-bold text-lg">Point Spread</p>
+                          </div>
+                          {spreads.outcomes.map((team, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-[#1DB954]/10 hover:bg-[#1DB954]/20 p-4 rounded-xl mb-3 transition-all duration-200 cursor-pointer border border-[#1DB954]/20 hover:border-[#1DB954]/40"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-white">{team.name}</span>
+                                <div className="text-right">
+                                  <span className="text-2xl font-bold text-[#1DB954]">
+                                    {team.point > 0 ? "+" : ""}{team.point}
+                                  </span>
+                                  <span className="text-sm text-gray-400 ml-2">({team.price})</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-gray-400">Win Probability:</span>
+                                <span className="font-semibold text-[#1DB954]">{calcWinProb(team.price)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* TOTALS */}
+                      {totals && (
+                        <div className="bg-gradient-to-br from-[#0f1f33] to-[#16233b] p-6 rounded-2xl border border-gray-700/50">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-2 h-2 rounded-full bg-[#1DB954]"></div>
+                            <p className="text-gray-300 font-bold text-lg">Over/Under</p>
+                          </div>
+                          {totals.outcomes.map((line, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-[#1DB954]/10 hover:bg-[#1DB954]/20 p-4 rounded-xl mb-3 transition-all duration-200 cursor-pointer border border-[#1DB954]/20 hover:border-[#1DB954]/40"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-white">{line.name}</span>
+                                <div className="text-right">
+                                  <span className="text-2xl font-bold text-[#1DB954]">{line.point}</span>
+                                  <span className="text-sm text-gray-400 ml-2">({line.price})</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-gray-400">Win Probability:</span>
+                                <span className="font-semibold text-[#1DB954]">{calcWinProb(line.price)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    </div>
                   </div>
                 </div>
               );
