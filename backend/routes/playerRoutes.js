@@ -1,30 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const { getDB } = require('../config/db'); // <--- 1. Import Database Helper
 const router = express.Router();
 
 router.get('/fetch', async (req, res) => {
-  const db = getDB(); // <--- 2. Get DB Connection
-  const forceRefresh = req.query.refresh === 'true'; // Allow forcing update via ?refresh=true
-
+  console.log(" Fetching Players & 2025 Stats...");
+  
   try {
-    // --- 3. CHECK MONGODB FIRST (The Cache Layer) ---
-    if (!forceRefresh) {
-      const cachedPlayers = await db.collection('players')
-        .find({})
-        .sort({ search_rank: 1 }) // Ensure they come out sorted
-        .limit(1000)
-        .toArray();
-
-      if (cachedPlayers.length > 0) {
-        console.log(`✅ Returning ${cachedPlayers.length} players from MongoDB Cache`);
-        return res.json(cachedPlayers);
-      }
-    }
-
-    console.log("☁️  Fetching Fresh Data from Sleeper API...");
-    
-    // --- EXTERNAL API CALLS (Your existing logic) ---
     const [playersRes, statsRes] = await Promise.all([
       axios.get('https://api.sleeper.app/v1/players/nfl'),
       axios.get('https://api.sleeper.app/v1/stats/nfl/regular/2025') 
@@ -45,6 +26,7 @@ router.get('/fetch', async (req, res) => {
           full_name: `${player.first_name} ${player.last_name}`,
           position: 'DEF',
           team: player.player_id,
+          // CHANGE: Set rank to 400 so they appear AFTER top offensive players
           search_rank: 400, 
           stats: {
             pts_ppr: playerStats.pts_ppr || 0,
@@ -62,6 +44,7 @@ router.get('/fetch', async (req, res) => {
           full_name: player.full_name,
           position: player.position,
           team: player.team || 'FA',
+          // Use real popularity rank, fallback to low priority
           search_rank: player.search_rank || 99999,
           stats: {
             pts_ppr: playerStats.pts_ppr || 0,
@@ -77,28 +60,17 @@ router.get('/fetch', async (req, res) => {
       }
     });
 
-    // Sort by Popularity
+    // 3. Sort by Popularity (Stars first, Defenses middle, Bench last)
     allPlayersList.sort((a, b) => a.search_rank - b.search_rank);
     
-    // Send Top 1000
+    // 4. Send Top 1000
     const finalRoster = allPlayersList.slice(0, 1000);
 
-    // --- 4. SAVE TO MONGODB (The Write Layer) ---
-    if (finalRoster.length > 0) {
-      console.log("💾 Caching data to MongoDB...");
-      
-      // Clear old cache first so we don't have duplicates
-      await db.collection('players').deleteMany({}); 
-      
-      // Insert the new list
-      await db.collection('players').insertMany(finalRoster);
-    }
-
-    console.log(`🚀 Sending ${finalRoster.length} players (Fresh Fetch).`);
+    console.log(`Sending ${finalRoster.length} players sorted by rank.`);
     res.json(finalRoster);
 
   } catch (error) {
-    console.error("❌ Error fetching data:", error.message);
+    console.error(" Error fetching from Sleeper:", error.message);
     res.status(500).json({ error: "Failed to fetch data" });
   }
 });
