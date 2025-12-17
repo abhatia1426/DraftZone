@@ -4,7 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import DraftLogo from '../assets/FFLogo.jpeg';
 
 const Login = ({ onLogin }) => {
-    // --- STATE & LOGIC (Keep this part, it works!) ---
     const [isSignup, setIsSignup] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
