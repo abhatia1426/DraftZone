@@ -101,9 +101,9 @@ export default function Odds() {
             <Link to="/odds" className="text-[#1DB954]">
               ODDS
             </Link>
-            <a className="hover:text-[#1DB954] transition-colors cursor-pointer">
+            <Link to="/login" className="hover:text-[#1DB954] transition-colors">
               LOGIN & SIGNUP
-            </a>
+            </Link>
           </div>
         </div>
       </nav>
