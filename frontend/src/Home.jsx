@@ -52,7 +52,7 @@ export default function Home() {
             {['Home', 'Players', 'Draft', 'Odds', 'Login & Signup' ].map((item) => (
               <Link
                 key={item}
-                to={item === 'Home' ? '/' : item === 'Players' ? '/player-search' : item === 'Draft' ? '/draft' : item === 'Odds' ? '/odds' : '#'}
+                to={item === 'Home' ? '/' : item === 'Players' ? '/player-search' : item === 'Draft' ? '/draft' : item === 'Odds' ? '/odds' : item === 'Login & Signup' ? '/login' : '#'}
                 className="relative text-gray-400 hover:text-white transition-colors group"
               >
                 {item}
