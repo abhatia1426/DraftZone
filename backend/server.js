@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { connectDB } = require('./config/db');
 
 const app = express();
 const PORT = 8080;
@@ -8,11 +9,14 @@ const PORT = 8080;
 app.use(cors());
 app.use(express.json());
 
+connectDB();
+
 // Import Routes
 const playerRoutes = require('./routes/playerRoutes');
 const aiRoutes = require('./routes/aIRoutes');
 const authRoutes = require('./routes/authRoutes');
 const oddsRoutes = require('./routes/odds'); 
+const draftRoutes = require('./routes/draftRoutes');
 
 console.log('Odds routes loaded:', typeof oddsRoutes); // DEBUG LOG
 
@@ -21,6 +25,7 @@ app.use('/api/players', playerRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/odds', oddsRoutes); 
+app.use('/api/drafts', draftRoutes);
 
 // Test route to verify routing works
 app.get('/api/test', (req, res) => {

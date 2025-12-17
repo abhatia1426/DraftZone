@@ -4,7 +4,7 @@ const router = express.Router();
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 router.post('/suggest', async (req, res) => {
   const { roster, availablePlayers, round } = req.body;

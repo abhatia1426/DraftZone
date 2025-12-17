@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 
+
 const getPlayerImage = (player) => {
   if (!player) return "https://sleepercdn.com/images/v2/icons/player_default.webp";
   if (player.position === 'DEF' && player.team) {
@@ -213,6 +214,7 @@ const PlayerModal = ({ player, onClose, onDraft }) => {
 
 
 const DraftSimulator = () => {
+  const [draftId, setDraftId] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [displayPlayers, setDisplayPlayers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -265,15 +267,34 @@ const DraftSimulator = () => {
     }
   }, [errorMessage]);
 
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
-    axios.get('http://localhost:8080/api/players/fetch')
-      .then(res => {
-        setAllPlayers(res.data);
-        setDisplayPlayers(res.data);
+    const initDraft = async () => {
+      // 3. STOP if we already ran this
+      if (hasInitialized.current) return;
+      hasInitialized.current = true; 
+
+      try {
+        setLoading(true);
+        // Fetch Players
+        const playersRes = await axios.get("http://localhost:8080/api/players/fetch");
+        setAllPlayers(playersRes.data);
+        setDisplayPlayers(playersRes.data);
         setLoading(false);
-      })
-      .catch(err => console.error("Error fetching players", err));
+
+        // Start ONE new draft
+        const draftRes = await axios.post("http://localhost:8080/api/drafts", { gameMode });
+        setDraftId(draftRes.data.draftId);
+        
+      } catch(err) {
+        console.error("Draft init failed", err);
+      }
+    };
+
+    initDraft();
   }, []);
+
 
   useEffect(() => {
     const term = searchTerm.toLowerCase();
@@ -341,6 +362,16 @@ const DraftSimulator = () => {
 
     const updatedRosters = { ...rosters, [currentUser]: currentRoster };
     setRosters(updatedRosters);
+
+    if (draftId) {
+      axios.post(`http://localhost:8080/api/drafts/${draftId}/pick`, {
+        player,
+        user: currentUser, // "user1" or "user2"
+        round,
+        turn,
+        slot // <--- ADD THIS! (It passes "QB", "RB1", "BENCH", etc.)
+      }).catch(err => console.error("Pick save failed", err));
+    }
     
     // CHECK FOR DRAFT COMPLETION (16 players per team = 9 starters + 7 bench)
     const p1Count = countPlayers(updatedRosters.user1);
@@ -412,7 +443,7 @@ const DraftSimulator = () => {
         try {
           const res = await axios.post('http://localhost:8080/api/ai/suggest', {
             roster: rosters.user2,
-            availablePlayers: availableForCpu.slice(0, 50),
+            availablePlayers: availableForCpu.slice(0, 15),
             round: round
           }, { timeout: 8000 });
           
@@ -438,7 +469,7 @@ const DraftSimulator = () => {
         setAiLoading(false);
       };
 
-      const timer = setTimeout(performAiPick, 2000);
+      const timer = setTimeout(performAiPick, 500);
       return () => clearTimeout(timer);
     }
   }, [turn, gameMode, allPlayers, round, isDraftComplete]);
