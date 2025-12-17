@@ -68,7 +68,7 @@ export default function Odds() {
     <div className="min-h-screen w-full bg-gradient-to-br from-[#0a1628] via-[#0f1f33] to-[#0a1628] text-white">
 
       {/* NAVBAR */}
-      <nav className="bg-[#0f1f33] fixed top-0 left-0 right-0 z-50 border-b border-gray-800">
+      <nav className="bg-[#0d1f1a] fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
           <div className="flex items-center gap-3">
