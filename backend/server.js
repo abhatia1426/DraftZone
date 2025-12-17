@@ -12,7 +12,7 @@ app.use(express.json());
 const playerRoutes = require('./routes/playerRoutes');
 const aiRoutes = require('./routes/aIRoutes');
 const authRoutes = require('./routes/authRoutes');
-const oddsRoutes = require('./routes/odds'); // ADD THIS LINE
+const oddsRoutes = require('./routes/odds'); 
 
 console.log('Odds routes loaded:', typeof oddsRoutes); // DEBUG LOG
 
@@ -20,7 +20,7 @@ console.log('Odds routes loaded:', typeof oddsRoutes); // DEBUG LOG
 app.use('/api/players', playerRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/odds', oddsRoutes); // ADD THIS LINE
+app.use('/api/odds', oddsRoutes); 
 
 // Test route to verify routing works
 app.get('/api/test', (req, res) => {
