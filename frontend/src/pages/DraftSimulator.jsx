@@ -241,6 +241,30 @@ const DraftSimulator = () => {
 
   const rightPanelRef = useRef(null);
 
+  const finishDraft = async (finalRosters) => {
+    if (!draftId) {
+      console.error('No draft ID available');
+      return;
+    }
+
+    const score1 = calculateScore(finalRosters.user1);
+    const score2 = calculateScore(finalRosters.user2);
+    const winner = parseFloat(score1) >= parseFloat(score2) ? 'User 1' : 'User 2';
+
+    try {
+      const response = await axios.put(`http://localhost:8080/api/drafts/${draftId}/finish`, {
+        winner,
+        score1: parseFloat(score1),
+        score2: parseFloat(score2)
+      });
+      
+      console.log('✅ Draft finished successfully:', response.data);
+    } catch (error) {
+      console.error('❌ Error finishing draft:', error);
+    }
+  };
+
+
   // --- RESTART DRAFT ---
   const restartDraft = () => {
     setRosters({ user1: getEmptyRoster(), user2: getEmptyRoster() });
@@ -323,7 +347,7 @@ const DraftSimulator = () => {
       return count;
   };
 
-  const draftPlayer = (player) => {
+  const draftPlayer = async (player) => {
     if (!player) return false;
 
     const currentUser = `user${turn}`;
@@ -379,6 +403,8 @@ const DraftSimulator = () => {
     
     if (p1Count >= 16 && p2Count >= 16) {
         setIsDraftComplete(true);
+
+        await finishDraft(updatedRosters);
         return true;
     }
 
