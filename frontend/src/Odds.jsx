@@ -98,8 +98,8 @@ export default function Odds() {
             <a className="hover:text-[#1DB954] transition-colors cursor-pointer">
               DRAFT
             </a>
-            <Link to="/odds" className="text-[#1DB954]">
-              ODDS
+            <Link to="/draft" className="hover:text-[#1DB954]">
+              DRAFT
             </Link>
             <Link to="/login" className="hover:text-[#1DB954] transition-colors">
               LOGIN & SIGNUP
