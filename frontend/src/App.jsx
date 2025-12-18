@@ -7,7 +7,7 @@ import PlayerSearchPage from "./pages/PlayerSearchPage";
 import Home from "./Home";
 import Odds from "./Odds";
 import DraftSimulator from "./pages/DraftSimulator";
-import Authors from "./Authors"; // Add this import
+import Authors from "./Authors"; 
 
 export default function App() {
   const [user, setUser] = useState(null); 
