@@ -7,6 +7,7 @@ import PlayerSearchPage from "./pages/PlayerSearchPage";
 import Home from "./Home";
 import Odds from "./Odds";
 import DraftSimulator from "./pages/DraftSimulator";
+import Authors from "./Authors"; // Add this import
 
 export default function App() {
   const [user, setUser] = useState(null); 
@@ -24,12 +25,12 @@ export default function App() {
     navigate('/'); // Goes back to home page
   };
 
-  // Hide the app navbar on home and login pages (they have their own navbars)
-  const hideNavbar = location.pathname === '/' || location.pathname === '/login';
+  // Hide the app navbar on home, login, and authors pages (they have their own navbars)
+  const hideNavbar = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/authors';
 
   return (
     <div className="min-h-screen bg-[#0B0D12] text-white font-sans">
-      {/* Only show app navbar when NOT on home or login pages */}
+      {/* Only show app navbar when NOT on home, login, or authors pages */}
       {!hideNavbar && <Navbar user={user} onLogout={handleLogout} />}
 
       <Routes>
@@ -38,6 +39,9 @@ export default function App() {
         
         {/* Login page */}
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        
+        {/* Authors page - Public route */}
+        <Route path="/authors" element={<Authors />} />
         
         {/* Public Routes */}
         <Route path="/odds" element={<Odds />} />
@@ -89,6 +93,7 @@ const Navbar = ({ user, onLogout }) => {
         <Link to="/player-search" className="text-gray-400 hover:text-white">SEARCH</Link>
         <Link to="/" className="text-gray-400 hover:text-white">HOME</Link>
         <Link to="/odds" className="text-gray-400 hover:text-white">ODDS</Link>
+        <Link to="/authors" className="text-gray-400 hover:text-white">AUTHORS</Link>
         <div className="h-4 w-px bg-gray-700 mx-2"></div>
         <button onClick={onLogout} className="text-gray-500 hover:text-white">LOGOUT</button>
       </div>

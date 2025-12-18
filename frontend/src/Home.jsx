@@ -49,10 +49,10 @@ export default function Home() {
 
           {/* Links */}
           <div className="hidden md:flex gap-8 text-sm font-bold uppercase tracking-wider">
-            {['Home', 'Players', 'Draft', 'Odds', 'Login & Signup' ].map((item) => (
+            {['Home', 'Players', 'Draft', 'Odds', 'Login & Signup', 'Authors' ].map((item) => (
               <Link
                 key={item}
-                to={item === 'Home' ? '/' : item === 'Players' ? '/player-search' : item === 'Draft' ? '/draft' : item === 'Odds' ? '/odds' : item === 'Login & Signup' ? '/login' : '#'}
+                to={item === 'Home' ? '/' : item === 'Players' ? '/player-search' : item === 'Draft' ? '/draft' : item === 'Odds' ? '/odds' : item === 'Login & Signup' ? '/login' : item === 'Authors' ? '/authors' : '#'}
                 className="relative text-gray-400 hover:text-white transition-colors group"
               >
                 {item}
