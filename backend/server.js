@@ -17,6 +17,7 @@ const aiRoutes = require('./routes/aIRoutes');
 const authRoutes = require('./routes/authRoutes');
 const oddsRoutes = require('./routes/odds'); 
 const draftRoutes = require('./routes/draftRoutes');
+const betRoutes = require('./routes/betRoutes');
 
 console.log('Odds routes loaded:', typeof oddsRoutes); // DEBUG LOG
 
@@ -26,6 +27,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/odds', oddsRoutes); 
 app.use('/api/drafts', draftRoutes);
+app.use('/api/bets', betRoutes);
 
 // Test route to verify routing works
 app.get('/api/test', (req, res) => {
