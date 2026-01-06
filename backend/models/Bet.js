@@ -81,3 +81,5 @@ class Bet {
         return stats;
     }
 }
+
+module.exports = Bet;

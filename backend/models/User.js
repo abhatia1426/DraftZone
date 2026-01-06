@@ -1,11 +1,17 @@
 // backend/models/User.js
 const { getDB } = require("../config/db"); 
+const { ObjectId } = require("mongodb");
 
 class User {
   // Check if user exists in DB
   static async findByEmail(email) {
     const db = getDB();
     return await db.collection("users").findOne({ email });
+  }
+
+  static async findById(userId) {
+    const db = getDB();
+    return await db.collection("users").findOne({_id: new ObjectId(userId)});
   }
 
   // Create new user in DB
@@ -15,7 +21,6 @@ class User {
       email,
       password, // Hashed password
       role,
-      createdAt: new Date(),
       balance: 1000,
       totalWagered: 0,
       totalWon: 0,
@@ -25,7 +30,6 @@ class User {
 
   static async updateBalance(userId, newBalance) {
     const db = getDB();
-    const { ObjectId } = require("mongodb");
     return await db.collection("users").updateOne(
       {_id: new ObjectId(userId)},
       { $set: { balance: newBalance}}
@@ -34,9 +38,8 @@ class User {
 
   static async placeBet(userId, amount) {
     const db = getDB();
-    const { ObjectId } = require("mongodb");
     return await db.collection("users").updateOne(
-      {_id: new ObjectId(userIf)},
+      {_id: new ObjectId(userId)},
       {
         $inc: {
           balance: -amount,
@@ -48,7 +51,6 @@ class User {
 
   static async addWinnings(userId, payout, profit) {
     const db = getDB();
-    const { ObjectId } = require("mongodb");
     return await db.collection("users").updateOne(
       {_id: new ObjectId(userId)},
       {
@@ -61,4 +63,4 @@ class User {
   }
 }
 
-module.exports = User;a
+module.exports = User;

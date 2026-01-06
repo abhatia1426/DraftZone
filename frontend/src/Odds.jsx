@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import DraftLogo from "./assets/FFLogo.jpeg";
 
 const TEAM_LOGOS = {
   "Arizona Cardinals": "https://a.espncdn.com/i/teamlogos/nfl/500/ari.png",
@@ -50,8 +52,7 @@ export default function Odds() {
   const [userBalance, setUserBalance] = useState(1000);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
 
-  const userId = "678f6f2b8e7a3c001f4d5e9a"; // Replace with actual user ID from auth
-
+const userId = "6943417c55cff8664e9762d3"; // test@draftzone.com
   const fetchOdds = async () => {
     setLoading(true);
     try {
@@ -97,43 +98,53 @@ export default function Odds() {
   const placeBet = async () => {
     if (!selectedBet || betAmount <= 0) return;
     
+    console.log("🎲 Attempting to place bet with userId:", userId);
+    
     if (betAmount > userBalance) {
-      alert(`Insufficient balance! You have $${userBalance.toFixed(2)}`);
+      alert(`Insufficient balance! You have ${userBalance.toFixed(2)}`);
       return;
     }
 
     setIsPlacingBet(true);
 
     try {
+      const payload = {
+        userId: userId,
+        gameId: selectedBet.gameId,
+        awayTeam: selectedBet.awayTeam,
+        homeTeam: selectedBet.homeTeam,
+        teamName: selectedBet.teamName,
+        betType: selectedBet.betType,
+        odds: selectedBet.odds,
+        amount: betAmount
+      };
+      
+      console.log("📤 Sending bet payload:", payload);
+      
       const response = await fetch('http://localhost:8080/api/bets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          gameId: selectedBet.gameId,
-          awayTeam: selectedBet.awayTeam,
-          homeTeam: selectedBet.homeTeam,
-          teamName: selectedBet.teamName,
-          betType: selectedBet.betType,
-          odds: selectedBet.odds,
-          amount: betAmount
-        })
+        body: JSON.stringify(payload)
       });
 
+      console.log("📥 Response status:", response.status);
+      
       const data = await response.json();
+      console.log("📥 Response data:", data);
       
       if (data.success) {
         setUserBalance(data.newBalance);
-        alert(`✅ Bet placed successfully!\n\nBet: ${selectedBet.betType} on ${selectedBet.teamName}\nAmount: $${betAmount}\nPotential Win: $${(calculatePayout(selectedBet.odds, betAmount) - betAmount).toFixed(2)}\n\nNew Balance: $${data.newBalance.toFixed(2)}`);
+        alert(`✅ Bet placed successfully!\n\nBet: ${selectedBet.betType} on ${selectedBet.teamName}\nAmount: ${betAmount}\nPotential Win: ${(calculatePayout(selectedBet.odds, betAmount) - betAmount).toFixed(2)}\n\nNew Balance: ${data.newBalance.toFixed(2)}`);
         setShowBetSlip(false);
         setSelectedBet(null);
         setBetAmount(100);
       } else {
+        console.error("❌ Bet failed:", data.error);
         alert(`❌ ${data.error}`);
       }
     } catch (err) {
-      console.error('Error placing bet:', err);
-      alert('Failed to place bet. Please try again.');
+      console.error('❌ Error placing bet:', err);
+      alert(`Failed to place bet: ${err.message}`);
     } finally {
       setIsPlacingBet(false);
     }
@@ -147,28 +158,61 @@ export default function Odds() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-500 rounded-full blur-3xl opacity-20" />
       </div>
 
-      <nav className="bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50 border-b border-green-500/20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center">
-              <span className="text-2xl">🏈</span>
+      {/* NAVBAR - Matching Home Page */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/30 backdrop-blur-md border-b border-[#1DB954]/20">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative">
+              <img
+                src={DraftLogo}
+                className="h-12 w-12 rounded-full border-2 border-[#1DB954] group-hover:scale-110 transition-transform duration-300"
+                alt="Fantasy Football Logo"
+              />
+              <div className="absolute inset-0 rounded-full bg-[#1DB954] opacity-0 group-hover:opacity-20 blur-xl transition-opacity" />
             </div>
-            <span className="text-2xl font-bold">
-              <span className="text-white">DRAFT</span>
-              <span className="text-green-500">ZONE</span>
+            <span className="text-2xl font-black tracking-tight text-white">
+              DRAFT<span className="text-[#1DB954]">ZONE</span>
             </span>
+          </Link>
+
+          {/* Center Links */}
+          <div className="flex gap-4 md:gap-8 text-xs md:text-sm font-bold uppercase tracking-wider">
+            <Link to="/" className="relative text-gray-400 hover:text-white transition-colors group">
+              Home
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link to="/player-search" className="relative text-gray-400 hover:text-white transition-colors group">
+              Players
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link to="/draft" className="relative text-gray-400 hover:text-white transition-colors group">
+              Draft
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link to="/odds" className="relative text-gray-400 hover:text-white transition-colors group">
+              Odds
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link to="/login" className="relative text-gray-400 hover:text-white transition-colors group">
+              Login
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
+            <Link to="/authors" className="relative text-gray-400 hover:text-white transition-colors group">
+              Authors
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
+            </Link>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="px-4 py-2 bg-green-500/10 rounded-full border border-green-500/30">
-              <span className="text-gray-400 text-sm mr-2">Balance:</span>
-              <span className="text-green-500 font-bold text-lg">${userBalance.toFixed(2)}</span>
-            </div>
+          {/* Balance Display */}
+          <div className="px-4 py-2 bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-full">
+            <span className="text-gray-400 text-sm mr-2">Balance:</span>
+            <span className="text-[#1DB954] font-bold text-lg">${userBalance.toFixed(2)}</span>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 pt-32 pb-12 relative z-10">
 
         <div className="mb-12 text-center">
           <div className="inline-block mb-4">
