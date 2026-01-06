@@ -15,7 +15,7 @@ async function listUsers() {
   });
   
   if (users.length === 0) {
-    console.log("\n❌ No users found! You need to create one.");
+    console.log("\n No users found! You need to create one.");
   }
   
   process.exit(0);
