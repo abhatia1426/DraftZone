@@ -8,6 +8,7 @@ import Home from "./Home";
 import Odds from "./Odds";
 import DraftSimulator from "./pages/DraftSimulator";
 import Authors from "./Authors"; 
+import MyBets from "./pages/MyBets";
 
 export default function App() {
   const [user, setUser] = useState(null); 
@@ -26,7 +27,7 @@ export default function App() {
   };
 
   // Hide the app navbar on home, login, and authors pages (they have their own navbars)
-  const hideNavbar = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/authors';
+  const hideNavbar = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/authors' || location.pathname === '/my-bets';
 
   return (
     <div className="min-h-screen bg-[#0B0D12] text-white font-sans">
@@ -57,6 +58,10 @@ export default function App() {
 
         <Route path="/admin" element={
           <ProtectedRoute user={user} allowedRole="admin"><AdminPanel /></ProtectedRoute>
+        } />
+
+        <Route path="/my-bets" element={
+          <ProtectedRoute user={user}><MyBets /></ProtectedRoute>
         } />
       </Routes>
     </div>
@@ -94,6 +99,7 @@ const Navbar = ({ user, onLogout }) => {
         <Link to="/" className="text-gray-400 hover:text-white">HOME</Link>
         <Link to="/odds" className="text-gray-400 hover:text-white">ODDS</Link>
         <Link to="/authors" className="text-gray-400 hover:text-white">AUTHORS</Link>
+        <Link to="/my-bets" className="text-gray-400 hover:text-white">BETS</Link>
         <div className="h-4 w-px bg-gray-700 mx-2"></div>
         <button onClick={onLogout} className="text-gray-500 hover:text-white">LOGOUT</button>
       </div>

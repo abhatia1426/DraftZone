@@ -36,7 +36,7 @@ class Bet {
 
     static async findPendingByUserId(userId) {
         const db = getDB();
-        return await db.collection(bets)
+        return await db.collection("bets")
             .find({
                 userId: new ObjectId(userId),
                 status: "pending"
