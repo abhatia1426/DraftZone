@@ -1,742 +1,849 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import axios from 'axios';
 
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+// Theme: Warm editorial light — cream surfaces, charcoal type, grass-green accents
+// Fonts: Instrument Serif (display) + DM Mono (data) + Geist (body)
 
+const THEME = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-base:        #F5F2EC;
+    --bg-surface:     #FDFAF5;
+    --bg-raised:      #FFFFFF;
+    --bg-inset:       #EDE9E0;
+
+    --border-subtle:  rgba(30, 25, 15, 0.08);
+    --border-default: rgba(30, 25, 15, 0.14);
+    --border-strong:  rgba(30, 25, 15, 0.28);
+
+    --text-primary:   #1A1814;
+    --text-secondary: #6B6456;
+    --text-muted:     #A89E8E;
+    --text-inverse:   #FDFAF5;
+
+    --accent:         #2D6A2D;
+    --accent-light:   #EBF5EB;
+    --accent-mid:     #4A9B4A;
+    --accent-text:    #1E4A1E;
+
+    --cpu-accent:     #8B4513;
+    --cpu-light:      #F5EDE3;
+    --cpu-text:       #5C2E0A;
+
+    --warn:           #C4570A;
+    --warn-light:     #FEF0E6;
+
+    --shadow-sm: 0 1px 3px rgba(30,25,15,0.08), 0 1px 2px rgba(30,25,15,0.04);
+    --shadow-md: 0 4px 12px rgba(30,25,15,0.10), 0 2px 4px rgba(30,25,15,0.06);
+    --shadow-lg: 0 12px 32px rgba(30,25,15,0.12), 0 4px 8px rgba(30,25,15,0.06);
+
+    --radius-sm:   6px;
+    --radius-md:   10px;
+    --radius-lg:   14px;
+    --radius-xl:   20px;
+    --radius-pill: 999px;
+
+    --font-body:    'Geist', system-ui, sans-serif;
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-mono:    'DM Mono', 'Courier New', monospace;
+  }
+
+  body { font-family: var(--font-body); background: var(--bg-base); color: var(--text-primary); }
+
+  .dz-scrollbar::-webkit-scrollbar { width: 4px; }
+  .dz-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .dz-scrollbar::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-pill); }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .dz-fade { animation: fadeSlideUp 0.18s ease both; }
+  .dz-blink { animation: blink 1.2s infinite; }
+
+  .dz-dot-pulse { display: flex; gap: 4px; align-items: center; }
+  .dz-dot-pulse span {
+    display: inline-block; width: 4px; height: 4px;
+    border-radius: 50%; background: var(--text-muted);
+    animation: blink 1.2s ease infinite;
+  }
+  .dz-dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+  .dz-dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+`;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getPlayerImage = (player) => {
-  if (!player) return "https://sleepercdn.com/images/v2/icons/player_default.webp";
-  if (player.position === 'DEF' && player.team) {
+  if (!player) return 'https://sleepercdn.com/images/v2/icons/player_default.webp';
+  if (player.position === 'DEF' && player.team)
     return `https://sleepercdn.com/images/team_logos/nfl/${player.team.toLowerCase()}.png`;
-  }
   return `https://sleepercdn.com/content/nfl/players/${player.player_id}.jpg`;
 };
 
-const calculateScore = (roster) => {
-  let total = 0;
-  // Sum starters
-  const starters = [roster.QB, roster.RB1, roster.RB2, roster.WR1, roster.WR2, roster.TE, roster.FLEX, roster.DST, roster.K];
-  starters.forEach(p => {
-    if (p && p.stats && p.stats.pts_ppr) total += p.stats.pts_ppr;
-  });
-  return total.toFixed(1);
+const calcScore = (roster) => {
+  const keys = ['QB','RB1','RB2','WR1','WR2','TE','FLEX','DST','K'];
+  return keys.reduce((s, k) => s + (roster[k]?.stats?.pts_ppr || 0), 0).toFixed(1);
 };
 
-
-const DraftRecap = ({ rosters, onRestart }) => {
-  const score1 = calculateScore(rosters.user1);
-  const score2 = calculateScore(rosters.user2);
-  const winner = parseFloat(score1) >= parseFloat(score2) ? 'User 1' : 'User 2';
-
-  const renderRecapRow = (label, p1, p2) => (
-    <div className="grid grid-cols-3 gap-4 border-b border-gray-800 py-2 items-center hover:bg-gray-800/30 transition-colors">
-    
-      <div className={`flex items-center gap-2 ${!p1 ? 'opacity-50' : ''}`}>
-        <img src={getPlayerImage(p1)} className="w-8 h-8 rounded-full border border-gray-600 object-cover" alt="" />
-        <div className="overflow-hidden">
-          <div className="text-sm font-bold text-white truncate w-24 md:w-32">{p1?.full_name || 'Empty'}</div>
-          <div className="text-[10px] text-gray-500">{p1?.stats?.pts_ppr?.toFixed(1) || 0} PTS</div>
-        </div>
-      </div>
-
-      
-      <div className="text-center">
-        <span className="bg-gray-800 text-gray-400 text-[10px] font-bold px-2 py-1 rounded border border-gray-700">
-          {label}
-        </span>
-      </div>
-
-      
-      <div className="flex items-center gap-2 justify-end text-right">
-        <div className="overflow-hidden">
-          <div className="text-sm font-bold text-white truncate w-24 md:w-32">{p2?.full_name || 'Empty'}</div>
-          <div className="text-[10px] text-gray-500">{p2?.stats?.pts_ppr?.toFixed(1) || 0} PTS</div>
-        </div>
-        <img src={getPlayerImage(p2)} className="w-8 h-8 rounded-full border border-gray-600 object-cover" alt="" />
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-[#0B0D12] text-white flex flex-col items-center justify-center p-6 animate-fade-in">
-      <div className="max-w-4xl w-full bg-[#111318] border border-gray-800 rounded-3xl shadow-2xl overflow-hidden">
-        
-       
-        <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-8 text-center relative overflow-hidden">
-          <div className="relative z-10">
-            <h1 className="text-4xl font-black italic tracking-tighter mb-2">DRAFT COMPLETE!</h1>
-            <p className="text-blue-200 font-mono text-sm">SEASON PROJECTION BASED ON 2025 STATS</p>
-          </div>
-        </div>
-
-        
-        <div className="flex justify-between items-center bg-black/50 p-6 border-b border-gray-800">
-          <div className="text-center">
-            <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Team Human</div>
-            <div className={`text-4xl font-black ${winner === 'User 1' ? 'text-green-400' : 'text-gray-400'}`}>
-              {score1}
-            </div>
-            <div className="text-xs text-gray-600">Total Points</div>
-          </div>
-
-          <div className="text-2xl font-black text-gray-700">VS</div>
-
-          <div className="text-center">
-            <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Team CPU</div>
-            <div className={`text-4xl font-black ${winner === 'User 2' ? 'text-green-400' : 'text-gray-400'}`}>
-              {score2}
-            </div>
-            <div className="text-xs text-gray-600">Total Points</div>
-          </div>
-        </div>
-
-        
-        <div className="p-6 max-h-[500px] overflow-y-auto custom-scrollbar">
-          {renderRecapRow('QB', rosters.user1.QB, rosters.user2.QB)}
-          {renderRecapRow('RB', rosters.user1.RB1, rosters.user2.RB1)}
-          {renderRecapRow('RB', rosters.user1.RB2, rosters.user2.RB2)}
-          {renderRecapRow('WR', rosters.user1.WR1, rosters.user2.WR1)}
-          {renderRecapRow('WR', rosters.user1.WR2, rosters.user2.WR2)}
-          {renderRecapRow('TE', rosters.user1.TE, rosters.user2.TE)}
-          {renderRecapRow('FLX', rosters.user1.FLEX, rosters.user2.FLEX)}
-          {renderRecapRow('DEF', rosters.user1.DST, rosters.user2.DST)}
-          {renderRecapRow('K', rosters.user1.K, rosters.user2.K)}
-          
-          <div className="my-4 border-t border-gray-800"></div>
-          <div className="text-center text-xs text-gray-500 uppercase font-bold mb-2">Bench Players</div>
-          
-          {Array.from({ length: 7 }).map((_, i) => (
-            renderRecapRow(`BN`, rosters.user1.BENCH[i], rosters.user2.BENCH[i])
-          ))}
-        </div>
-
-        
-        <div className="p-6 bg-gray-900 border-t border-gray-800 text-center">
-          <button 
-            onClick={onRestart}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-900/40 transition-transform transform hover:scale-105"
-          >
-            START NEW DRAFT
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+const countPlayers = (roster) => {
+  const keys = ['QB','RB1','RB2','WR1','WR2','TE','FLEX','DST','K'];
+  return keys.filter(k => roster[k]).length + roster.BENCH.length;
 };
 
+const getEmptyRoster = () => ({
+  QB:null, RB1:null, RB2:null, WR1:null, WR2:null,
+  TE:null, FLEX:null, DST:null, K:null, BENCH:[]
+});
 
-const PlayerModal = ({ player, onClose, onDraft }) => {
-  if (!player) return null;
+const POS_META = {
+  QB:  { color: '#D4380D', bg: '#FFF2E8' },
+  RB:  { color: '#389E0D', bg: '#F6FFED' },
+  WR:  { color: '#096DD9', bg: '#E6F7FF' },
+  TE:  { color: '#D46B08', bg: '#FFF7E6' },
+  DEF: { color: '#531DAB', bg: '#F9F0FF' },
+  K:   { color: '#08979C', bg: '#E6FFFB' },
+};
 
+// ─── Shared button styles ─────────────────────────────────────────────────────
+
+const S = {
+  btnPrimary: {
+    display:'inline-flex', alignItems:'center', gap:6,
+    padding:'7px 14px', background:'var(--accent)', color:'var(--text-inverse)',
+    border:'none', borderRadius:'var(--radius-sm)',
+    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    letterSpacing:'0.04em', cursor:'pointer', whiteSpace:'nowrap',
+  },
+  btnGhost: {
+    display:'inline-flex', alignItems:'center',
+    padding:'6px 10px', background:'transparent', color:'var(--text-secondary)',
+    border:'1px solid var(--border-default)', borderRadius:'var(--radius-sm)',
+    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    letterSpacing:'0.04em', cursor:'pointer',
+  },
+  btnDisabled: {
+    display:'inline-flex', alignItems:'center',
+    padding:'7px 14px', background:'var(--bg-inset)', color:'var(--text-muted)',
+    border:'1px solid var(--border-subtle)', borderRadius:'var(--radius-sm)',
+    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    letterSpacing:'0.04em', cursor:'not-allowed',
+  },
+  input: {
+    padding:'8px 12px', background:'var(--bg-inset)',
+    border:'1px solid var(--border-default)', borderRadius:'var(--radius-sm)',
+    fontSize:12, color:'var(--text-primary)', fontFamily:'var(--font-body)', outline:'none',
+  },
+};
+
+// ─── Atoms ────────────────────────────────────────────────────────────────────
+
+const PosBadge = memo(({ pos }) => {
+  const m = POS_META[pos] || POS_META.K;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-gray-900 border border-gray-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white bg-black/40 hover:bg-black/60 rounded-full w-8 h-8 flex items-center justify-center transition z-10"
-        >
-          ✕
+    <span style={{
+      background: m.bg, color: m.color,
+      fontSize:10, fontWeight:600, fontFamily:'var(--font-mono)',
+      padding:'2px 7px', borderRadius:'var(--radius-pill)',
+      letterSpacing:'0.04em', border:`1px solid ${m.color}22`, whiteSpace:'nowrap',
+    }}>
+      {pos}
+    </span>
+  );
+});
+
+// ─── Player Row ───────────────────────────────────────────────────────────────
+
+const PlayerRow = memo(({ player, rank, onDraft, onSelect, isDisabled }) => {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      style={{
+        display:'grid', gridTemplateColumns:'36px 36px 1fr 54px 60px 64px 100px',
+        alignItems:'center', gap:8, padding:'10px 16px',
+        borderBottom:'1px solid var(--border-subtle)',
+        background: hov ? 'var(--bg-raised)' : 'var(--bg-surface)',
+        transition:'background 0.1s',
+      }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', textAlign:'right' }}>{rank}</span>
+
+      <img
+        src={getPlayerImage(player)} alt=""
+        style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover', background:'var(--bg-inset)', border:'1.5px solid var(--border-default)' }}
+        onError={e => e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'}
+        loading="lazy"
+      />
+
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{player.full_name}</div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--font-mono)' }}>{player.team || 'FA'}</div>
+      </div>
+
+      <PosBadge pos={player.position} />
+
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-primary)', fontWeight:500, textAlign:'right' }}>
+        {player.stats?.pts_ppr?.toFixed(1) || '—'}
+      </span>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', textAlign:'right' }}>
+        {player.adp ? Number(player.adp).toFixed(1) : '—'}
+      </span>
+
+      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+        <button onClick={() => onSelect(player)} style={S.btnGhost}>INFO</button>
+        <button onClick={() => onDraft(player)} disabled={isDisabled} style={isDisabled ? S.btnDisabled : S.btnPrimary}>
+          DRAFT
         </button>
+      </div>
+    </div>
+  );
+});
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 flex flex-col items-center relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-transparent to-transparent"></div>
-          <img 
-            src={getPlayerImage(player)} 
-            alt={player.full_name}
-            className={`w-36 h-36 border-4 shadow-2xl object-cover z-10 ${
-                player.position === 'DEF' ? 'object-contain border-transparent' : 'rounded-full bg-gray-200 border-blue-500'
-            }`}
-            onError={(e) => e.target.src = "https://sleepercdn.com/images/v2/icons/player_default.webp"}
+// ─── Roster Slot ─────────────────────────────────────────────────────────────
+
+const RosterSlot = memo(({ label, player }) => (
+  <div style={{
+    display:'flex', alignItems:'center', gap:10,
+    padding:'8px 12px', borderRadius:'var(--radius-md)',
+    background: player ? 'var(--bg-raised)' : 'var(--bg-inset)',
+    border:'1px solid var(--border-subtle)', marginBottom:4,
+  }}>
+    <span style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:600, color:'var(--text-muted)', width:28, flexShrink:0, letterSpacing:'0.05em' }}>{label}</span>
+    {player ? (
+      <>
+        <img src={getPlayerImage(player)} alt=""
+          style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', background:'var(--bg-inset)', border:'1px solid var(--border-default)', flexShrink:0 }}
+          onError={e => e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'}
+        />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{player.full_name}</div>
+          <div style={{ fontSize:10, color:'var(--text-muted)' }}>{player.position} · {player.team}</div>
+        </div>
+        <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-secondary)', flexShrink:0 }}>
+          {player.stats?.pts_ppr?.toFixed(1) || '—'}
+        </span>
+      </>
+    ) : (
+      <span style={{ fontSize:12, color:'var(--text-muted)', fontStyle:'italic' }}>Empty</span>
+    )}
+  </div>
+));
+
+// ─── Player Modal ─────────────────────────────────────────────────────────────
+
+const PlayerModal = memo(({ player, onClose, onDraft }) => {
+  if (!player) return null;
+  const m = POS_META[player.position] || POS_META.K;
+
+  const stats = (() => {
+    if (player.position === 'QB') return [
+      { label:'Pass Yds', val: player.stats?.pass_yd||0 },
+      { label:'Pass TDs', val: player.stats?.pass_td||0 },
+      { label:'INTs',     val: player.stats?.pass_int||0 },
+    ];
+    if (player.position === 'DEF') return [
+      { label:'Sacks', val: player.stats?.sack||0 },
+      { label:'INTs',  val: player.stats?.int||0 },
+      { label:'Pts',   val: player.stats?.pts_ppr?.toFixed(1)||0 },
+    ];
+    if (player.position === 'K') return [
+      { label:'FG Made', val: player.stats?.fgm||0 },
+      { label:'FG Att',  val: player.stats?.fga||0 },
+      { label:'XP Made', val: player.stats?.xpm||0 },
+    ];
+    return [
+      { label:'Rush Yds', val: player.stats?.rush_yd||0 },
+      { label:'Rec Yds',  val: player.stats?.rec_yd||0 },
+      { label:'TDs',      val: (player.stats?.rush_td||0)+(player.stats?.rec_td||0) },
+    ];
+  })();
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:50,
+      background:'rgba(20,16,10,0.55)', backdropFilter:'blur(8px)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:16,
+    }}>
+      <div onClick={e => e.stopPropagation()} className="dz-fade" style={{
+        width:'100%', maxWidth:380, background:'var(--bg-raised)',
+        borderRadius:'var(--radius-xl)', boxShadow:'var(--shadow-lg)',
+        overflow:'hidden', border:'1px solid var(--border-default)',
+      }}>
+        {/* Header */}
+        <div style={{ background:m.bg, padding:'28px 24px 20px', textAlign:'center', position:'relative', borderBottom:'1px solid var(--border-subtle)' }}>
+          <button onClick={onClose} style={{
+            position:'absolute', top:14, right:14, width:28, height:28,
+            borderRadius:'50%', border:'1px solid var(--border-default)',
+            background:'var(--bg-raised)', cursor:'pointer', fontSize:12,
+            color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center',
+          }}>✕</button>
+          <img src={getPlayerImage(player)} alt={player.full_name}
+            style={{ width:80, height:80, borderRadius:'50%', objectFit:'cover', border:`3px solid ${m.color}`, background:'var(--bg-inset)', margin:'0 auto 12px' }}
+            onError={e => e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'}
           />
-          <h2 className="text-3xl font-bold text-white mt-4 z-10 text-center">{player.full_name}</h2>
-          <div className="flex items-center gap-2 mt-2 z-10">
-            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">{player.position}</span>
-            <span className="text-gray-400 font-semibold text-lg">{player.team}</span>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:22, color:'var(--text-primary)', marginBottom:6 }}>{player.full_name}</div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+            <PosBadge pos={player.position} />
+            <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-secondary)' }}>{player.team}</span>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="bg-gray-800 rounded-xl p-4 mb-6 border border-gray-700">
-            <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3 border-b border-gray-700 pb-2">
-              2025 Season Stats
-            </h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-gray-900/50 rounded-lg p-2">
-                <div className="text-2xl font-black text-blue-400">{player.stats?.pts_ppr?.toFixed(1) || 0}</div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold">PTS (PPR)</div>
+        {/* Stats */}
+        <div style={{ padding:'16px 20px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:16 }}>
+            {[{ label:'PPR Pts', val:player.stats?.pts_ppr?.toFixed(1)||0, accent:true }, ...stats].map((s,i) => (
+              <div key={i} style={{
+                textAlign:'center', padding:'10px 4px',
+                background: i===0 ? m.bg : 'var(--bg-inset)',
+                borderRadius:'var(--radius-md)',
+                border:`1px solid ${i===0 ? m.color+'33' : 'var(--border-subtle)'}`,
+              }}>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:i===0?18:16, fontWeight:600, color:i===0?m.color:'var(--text-primary)' }}>{s.val}</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600, marginTop:2 }}>{s.label}</div>
               </div>
-              {player.position === 'QB' ? (
-                <>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{player.stats?.pass_yd || 0}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">Pass Yds</div>
-                  </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{player.stats?.pass_td || 0}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">TDs</div>
-                  </div>
-                </>
-              ) : player.position === 'DEF' ? (
-                <>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{player.stats?.sack || 0}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">Sacks</div>
-                  </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{player.stats?.int || 0}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">INTs</div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{(player.stats?.rush_yd || 0) + (player.stats?.rec_yd || 0)}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">Total Yds</div>
-                  </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2">
-                    <div className="text-xl font-bold text-white">{(player.stats?.rush_td || 0) + (player.stats?.rec_td || 0)}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">Total TDs</div>
-                  </div>
-                </>
-              )}
-            </div>
+            ))}
           </div>
-          <button 
-            onClick={() => { onDraft(player); onClose(); }}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/50 transition-all transform hover:scale-[1.02]"
-          >
-            DRAFT PLAYER
+          <button onClick={() => { onDraft(player); onClose(); }}
+            style={{ ...S.btnPrimary, width:'100%', padding:'12px', fontSize:13, justifyContent:'center', borderRadius:'var(--radius-md)' }}>
+            Draft {player.full_name.split(' ').slice(-1)[0].toUpperCase()}
           </button>
         </div>
       </div>
     </div>
   );
-};
+});
 
+// ─── AI Chat Panel ────────────────────────────────────────────────────────────
 
-const DraftSimulator = () => {
-  const [draftId, setDraftId] = useState(null);
-  const [allPlayers, setAllPlayers] = useState([]);
-  const [displayPlayers, setDisplayPlayers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPos, setFilterPos] = useState('ALL'); 
-  const [gameMode, setGameMode] = useState('PVP'); 
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isDraftComplete, setIsDraftComplete] = useState(false); 
+const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
+  const [messages, setMessages] = useState([
+    { role:'assistant', text:"Ready to scout. Ask me about any player, your roster needs, or get a recommendation for this round." }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
 
-  const getEmptyRoster = () => ({ 
-    QB: null, RB1: null, RB2: null, WR1: null, WR2: null, TE: null, FLEX: null, DST: null, K: null, BENCH: [] 
-  });
-  
-  const [rosters, setRosters] = useState({ 
-    user1: getEmptyRoster(), 
-    user2: getEmptyRoster() 
-  });
-  
-  const [turn, setTurn] = useState(1);
-  const [round, setRound] = useState(1);
-  const [aiAdvice, setAiAdvice] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
 
-  const rightPanelRef = useRef(null);
+  const send = useCallback(async (text) => {
+    if (!text.trim() || loading) return;
+    const msg = text.trim();
+    setInput('');
+    setMessages(p => [...p, { role:'user', text:msg }]);
+    setLoading(true);
 
-  const finishDraft = async (finalRosters) => {
-    if (!draftId) {
-      console.error('No draft ID available');
-      return;
-    }
-
-    const score1 = calculateScore(finalRosters.user1);
-    const score2 = calculateScore(finalRosters.user2);
-    const winner = parseFloat(score1) >= parseFloat(score2) ? 'User 1' : 'User 2';
+    const rosterSummary = ['QB','RB1','RB2','WR1','WR2','TE','FLEX','DST','K']
+      .map(k => `${k}: ${roster[k]?.full_name || 'Empty'}`).join(', ');
+    const bench = roster.BENCH.map(p => p.full_name).join(', ') || 'None';
+    const topAvail = allPlayers.slice(0,20).map(p => `${p.full_name} (${p.position}, ${p.stats?.pts_ppr?.toFixed(1)||0} pts)`).join(', ');
 
     try {
-      const response = await axios.put(`http://localhost:8080/api/drafts/${draftId}/finish`, {
-        winner,
-        score1: parseFloat(score1),
-        score2: parseFloat(score2)
+      const res = await axios.post('http://localhost:8080/api/ai/chat', {
+        message:msg, context:{ round, turn, roster:rosterSummary, bench, topAvailable:topAvail }
       });
-      
-      console.log('✅ Draft finished successfully:', response.data);
-    } catch (error) {
-      console.error('❌ Error finishing draft:', error);
+      setMessages(p => [...p, { role:'assistant', text:res.data.reply || 'No response.' }]);
+    } catch {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            model:'claude-sonnet-4-20250514', max_tokens:200,
+            system:`You are a sharp fantasy football draft assistant. Keep answers to 2-3 sentences. Round: ${round}. My roster: ${rosterSummary}. Bench: ${bench}. Top available: ${topAvail}.`,
+            messages:[{ role:'user', content:msg }]
+          })
+        });
+        const data = await res.json();
+        setMessages(p => [...p, { role:'assistant', text:data.content?.[0]?.text || 'No response.' }]);
+      } catch {
+        setMessages(p => [...p, { role:'assistant', text:'Scout offline — check your connection.' }]);
+      }
     }
-  };
+    setLoading(false);
+  }, [loading, roster, allPlayers, round, turn]);
 
+  const quickPrompts = ['Who should I pick?', 'What position do I need?', 'Best value sleeper?'];
 
-  // --- RESTART DRAFT ---
-  const restartDraft = () => {
-    setRosters({ user1: getEmptyRoster(), user2: getEmptyRoster() });
-    setTurn(1);
-    setRound(1);
-    setErrorMessage('');
-    setAiAdvice('');
-    setIsDraftComplete(false);
-    
-    // Re-fetch players to reset the pool
-    setLoading(true);
-    axios.get('http://localhost:8080/api/players/fetch')
-      .then(res => {
-        setAllPlayers(res.data);
-        setDisplayPlayers(res.data);
-        setLoading(false);
-      });
-  };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+      <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:8 }}>
+        {messages.map((m,i) => (
+          <div key={i} className="dz-fade" style={{ display:'flex', justifyContent:m.role==='user'?'flex-end':'flex-start' }}>
+            <div style={{
+              maxWidth:'85%', padding:'9px 12px', fontSize:12, lineHeight:1.6,
+              borderRadius: m.role==='user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+              background: m.role==='user' ? 'var(--accent)' : 'var(--bg-inset)',
+              color: m.role==='user' ? 'var(--text-inverse)' : 'var(--text-primary)',
+              border: m.role==='user' ? 'none' : '1px solid var(--border-subtle)',
+            }}>{m.text}</div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display:'flex', justifyContent:'flex-start' }}>
+            <div style={{ padding:'10px 14px', background:'var(--bg-inset)', borderRadius:'12px 12px 12px 3px', border:'1px solid var(--border-subtle)' }}>
+              <div className="dz-dot-pulse"><span/><span/><span/></div>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {messages.length <= 1 && (
+        <div style={{ padding:'0 12px 8px', display:'flex', flexDirection:'column', gap:4 }}>
+          {quickPrompts.map(q => (
+            <button key={q} onClick={() => send(q)} style={{
+              padding:'8px 12px', background:'var(--bg-inset)', border:'1px solid var(--border-subtle)',
+              borderRadius:'var(--radius-sm)', fontSize:11, color:'var(--text-secondary)',
+              fontFamily:'var(--font-body)', cursor:'pointer', textAlign:'left',
+            }}>{q} →</button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border-subtle)', display:'flex', gap:8 }}>
+        <input value={input} onChange={e=>setInput(e.target.value)}
+          onKeyDown={e => e.key==='Enter' && send(input)}
+          placeholder="Ask about a player or pick..."
+          style={{ ...S.input, flex:1 }}
+          onFocus={e=>e.target.style.borderColor='var(--accent)'}
+          onBlur={e=>e.target.style.borderColor='var(--border-default)'}
+        />
+        <button onClick={() => send(input)} disabled={loading||!input.trim()}
+          style={loading||!input.trim() ? S.btnDisabled : S.btnPrimary}>
+          Ask
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// ─── Roster Panel ─────────────────────────────────────────────────────────────
+
+const RosterPanel = ({ roster, label, isActive }) => {
+  const slots = [['QB','QB'],['RB','RB1'],['RB','RB2'],['WR','WR1'],['WR','WR2'],['TE','TE'],['FLEX','FLEX'],['DEF','DST'],['K','K']];
+  return (
+    <div style={{
+      borderRadius:'var(--radius-lg)',
+      border: isActive ? '1.5px solid var(--accent-mid)' : '1px solid var(--border-subtle)',
+      overflow:'hidden',
+      background: isActive ? '#FBFFF9' : 'var(--bg-surface)',
+    }}>
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'10px 14px', borderBottom:'1px solid var(--border-subtle)',
+        background: isActive ? 'var(--accent-light)' : 'var(--bg-inset)',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {isActive && <div className="dz-blink" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)' }} />}
+          <span style={{ fontSize:12, fontWeight:600, color: isActive?'var(--accent-text)':'var(--text-secondary)', letterSpacing:'0.03em' }}>{label}</span>
+        </div>
+        <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)' }}>{countPlayers(roster)}/16</span>
+      </div>
+      <div style={{ padding:'10px 10px 6px' }}>
+        {slots.map(([lbl,key]) => <RosterSlot key={key} label={lbl} player={roster[key]} />)}
+        {roster.BENCH.length > 0 && (
+          <>
+            <div style={{ fontSize:10, color:'var(--text-muted)', fontWeight:600, letterSpacing:'0.07em', textTransform:'uppercase', padding:'8px 4px 4px', fontFamily:'var(--font-mono)' }}>Bench</div>
+            {roster.BENCH.map((p,i) => <RosterSlot key={i} label="BN" player={p} />)}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Draft Recap ──────────────────────────────────────────────────────────────
+
+const DraftRecap = ({ rosters, onRestart }) => {
+  const s1 = calcScore(rosters.user1), s2 = calcScore(rosters.user2);
+  const winner = parseFloat(s1) >= parseFloat(s2) ? 'user1' : 'user2';
+  const slots = [['QB','QB'],['RB','RB1'],['RB','RB2'],['WR','WR1'],['WR','WR2'],['TE','TE'],['FLEX','FLEX'],['DEF','DST'],['K','K']];
+
+  return (
+    <div style={{ minHeight:'100vh', background:'var(--bg-base)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'var(--font-body)' }}>
+      <div style={{ width:'100%', maxWidth:600 }}>
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:36, color:'var(--text-primary)', marginBottom:4, fontStyle:'italic' }}>Draft Complete</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase' }}>Season projections · 2025 stats</div>
+        </div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:16, marginBottom:20, background:'var(--bg-raised)', borderRadius:'var(--radius-xl)', padding:'24px 32px', border:'1px solid var(--border-default)', boxShadow:'var(--shadow-md)' }}>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team Human</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:48, fontWeight:600, color:winner==='user1'?'var(--accent)':'var(--text-muted)' }}>{s1}</div>
+          </div>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:18, color:'var(--border-strong)', fontStyle:'italic' }}>vs</div>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team CPU</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:48, fontWeight:600, color:winner==='user2'?'var(--cpu-accent)':'var(--text-muted)' }}>{s2}</div>
+          </div>
+        </div>
+
+        <div style={{ background:'var(--bg-raised)', borderRadius:'var(--radius-xl)', border:'1px solid var(--border-default)', overflow:'hidden', boxShadow:'var(--shadow-sm)', marginBottom:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 48px 1fr', padding:'8px 20px', background:'var(--bg-inset)', borderBottom:'1px solid var(--border-subtle)' }}>
+            {['Human','','CPU'].map((h,i)=>(
+              <span key={i} style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:'var(--font-mono)', textAlign:i===2?'right':'left' }}>{h}</span>
+            ))}
+          </div>
+          <div className="dz-scrollbar" style={{ maxHeight:420, overflowY:'auto' }}>
+            {slots.map(([lbl,key]) => {
+              const p1=rosters.user1[key], p2=rosters.user2[key];
+              return (
+                <div key={key} style={{ display:'grid', gridTemplateColumns:'1fr 48px 1fr', alignItems:'center', padding:'10px 20px', borderBottom:'1px solid var(--border-subtle)' }}
+                  onMouseEnter={e=>e.currentTarget.style.background='var(--bg-inset)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <img src={getPlayerImage(p1)} style={{ width:28,height:28,borderRadius:'50%',objectFit:'cover',background:'var(--bg-inset)',border:'1px solid var(--border-subtle)' }} alt="" onError={e=>e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
+                    <div>
+                      <div style={{ fontSize:12,fontWeight:500,color:'var(--text-primary)' }}>{p1?.full_name||'—'}</div>
+                      <div style={{ fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p1?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign:'center' }}>
+                    <span style={{ fontSize:10,fontWeight:600,color:'var(--text-muted)',background:'var(--bg-inset)',padding:'2px 6px',borderRadius:'var(--radius-sm)',fontFamily:'var(--font-mono)',border:'1px solid var(--border-subtle)' }}>{lbl}</span>
+                  </div>
+                  <div style={{ display:'flex',alignItems:'center',gap:8,justifyContent:'flex-end',flexDirection:'row-reverse' }}>
+                    <img src={getPlayerImage(p2)} style={{ width:28,height:28,borderRadius:'50%',objectFit:'cover',background:'var(--bg-inset)',border:'1px solid var(--border-subtle)' }} alt="" onError={e=>e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontSize:12,fontWeight:500,color:'var(--text-primary)' }}>{p2?.full_name||'—'}</div>
+                      <div style={{ fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p2?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <button onClick={onRestart} style={{ ...S.btnPrimary, width:'100%', padding:'14px', fontSize:13, justifyContent:'center', borderRadius:'var(--radius-lg)' }}>
+          Start New Draft
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const CATEGORIES   = ['ALL','QB','RB','WR','TE','DEF','K'];
+const SIDEBAR_TABS = ['AI Scout','My Roster','CPU Roster'];
+
+const DraftSimulator = () => {
+  const [draftId, setDraftId]         = useState(null);
+  const [allPlayers, setAllPlayers]   = useState([]);
+  const [displayPlayers, setDisplay]  = useState([]);
+  const [searchTerm, setSearchTerm]   = useState('');
+  const [filterPos, setFilterPos]     = useState('ALL');
+  const [gameMode, setGameMode]       = useState('PvAI');
+  const [selectedPlayer, setSelected] = useState(null);
+  const [rosters, setRosters]         = useState({ user1:getEmptyRoster(), user2:getEmptyRoster() });
+  const [turn, setTurn]               = useState(1);
+  const [round, setRound]             = useState(1);
+  const [loading, setLoading]         = useState(true);
+  const [aiLoading, setAiLoading]     = useState(false);
+  const [isDraftComplete, setDone]    = useState(false);
+  const [errorMsg, setErrorMsg]       = useState('');
+  const [sidebarTab, setSidebarTab]   = useState(0);
+  const [pickHistory, setPickHistory] = useState([]);
+  const hasInit = useRef(false);
 
   useEffect(() => {
-    if (errorMessage) {
-        const timer = setTimeout(() => setErrorMessage(''), 3000);
-        return () => clearTimeout(timer);
-    }
-  }, [errorMessage]);
-
-  const hasInitialized = useRef(false);
-
-  useEffect(() => {
-    const initDraft = async () => {
-      // 3. STOP if we already ran this
-      if (hasInitialized.current) return;
-      hasInitialized.current = true; 
-
+    if (hasInit.current) return;
+    hasInit.current = true;
+    (async () => {
       try {
         setLoading(true);
-        // Fetch Players
-        const playersRes = await axios.get("http://localhost:8080/api/players/fetch");
-        setAllPlayers(playersRes.data);
-        setDisplayPlayers(playersRes.data);
-        setLoading(false);
-
-        // Start ONE new draft
-        const draftRes = await axios.post("http://localhost:8080/api/drafts", { gameMode });
-        setDraftId(draftRes.data.draftId);
-        
-      } catch(err) {
-        console.error("Draft init failed", err);
-      }
-    };
-
-    initDraft();
+        const pr = await axios.get('http://localhost:8080/api/players/fetch');
+        setAllPlayers(pr.data); setDisplay(pr.data); setLoading(false);
+        const dr = await axios.post('http://localhost:8080/api/drafts', { gameMode });
+        setDraftId(dr.data.draftId);
+      } catch { setLoading(false); }
+    })();
   }, []);
-
 
   useEffect(() => {
     const term = searchTerm.toLowerCase();
-    const filtered = allPlayers.filter(p => {
-      const matchesSearch = p.full_name.toLowerCase().includes(term) || 
-                            p.team.toLowerCase().includes(term) ||
-                            p.position.toLowerCase().includes(term);
-      const matchesCategory = filterPos === 'ALL' || p.position === filterPos;
-      return matchesSearch && matchesCategory;
-    });
-    setDisplayPlayers(filtered);
+    setDisplay(allPlayers.filter(p =>
+      (filterPos==='ALL' || p.position===filterPos) &&
+      (p.full_name.toLowerCase().includes(term) || p.team?.toLowerCase().includes(term))
+    ));
   }, [searchTerm, filterPos, allPlayers]);
 
-  // --- CHECK IF ROSTER IS FULL ---
-  const countPlayers = (roster) => {
-      let count = roster.BENCH.length;
-      if (roster.QB) count++;
-      if (roster.RB1) count++;
-      if (roster.RB2) count++;
-      if (roster.WR1) count++;
-      if (roster.WR2) count++;
-      if (roster.TE) count++;
-      if (roster.FLEX) count++;
-      if (roster.DST) count++;
-      if (roster.K) count++;
-      return count;
+  useEffect(() => {
+    if (!errorMsg) return;
+    const t = setTimeout(() => setErrorMsg(''), 3000);
+    return () => clearTimeout(t);
+  }, [errorMsg]);
+
+  const finishDraft = async (fr) => {
+    if (!draftId) return;
+    const s1=calcScore(fr.user1), s2=calcScore(fr.user2);
+    const winner = parseFloat(s1)>=parseFloat(s2) ? 'User 1' : 'User 2';
+    try { await axios.put(`http://localhost:8080/api/drafts/${draftId}/finish`, { winner, score1:parseFloat(s1), score2:parseFloat(s2) }); } catch {}
   };
 
-  const draftPlayer = async (player) => {
+  const draftPlayer = useCallback(async (player) => {
     if (!player) return false;
-
-    const currentUser = `user${turn}`;
-    const currentRoster = { ...rosters[currentUser], BENCH: [...rosters[currentUser].BENCH] };
-
+    const cu = `user${turn}`;
+    const cr = { ...rosters[cu], BENCH:[...rosters[cu].BENCH] };
+    const pos = player.position;
     let slot = null;
 
-    if (player.position === 'QB' && !currentRoster.QB) slot = 'QB';
-    else if (player.position === 'RB') {
-      if (!currentRoster.RB1) slot = 'RB1'; else if (!currentRoster.RB2) slot = 'RB2'; else if (!currentRoster.FLEX) slot = 'FLEX';
-    }
-    else if (player.position === 'WR') {
-      if (!currentRoster.WR1) slot = 'WR1'; else if (!currentRoster.WR2) slot = 'WR2'; else if (!currentRoster.FLEX) slot = 'FLEX';
-    }
-    else if (player.position === 'TE') {
-      if (!currentRoster.TE) slot = 'TE'; else if (!currentRoster.FLEX) slot = 'FLEX';
-    }
-    else if (player.position === 'DEF' && !currentRoster.DST) slot = 'DST';
-    else if (player.position === 'K' && !currentRoster.K) slot = 'K';
+    if (pos==='QB' && !cr.QB)          slot='QB';
+    else if (pos==='RB') { if(!cr.RB1) slot='RB1'; else if(!cr.RB2) slot='RB2'; else if(!cr.FLEX) slot='FLEX'; }
+    else if (pos==='WR') { if(!cr.WR1) slot='WR1'; else if(!cr.WR2) slot='WR2'; else if(!cr.FLEX) slot='FLEX'; }
+    else if (pos==='TE') { if(!cr.TE)  slot='TE';  else if(!cr.FLEX) slot='FLEX'; }
+    else if (pos==='DEF' && !cr.DST)   slot='DST';
+    else if (pos==='K'   && !cr.K)     slot='K';
 
     if (!slot) {
-        if (currentRoster.BENCH.length >= 7) {
-            if (turn === 1) {
-                setErrorMessage(`Cannot draft ${player.full_name}. Your ${player.position} slots and Bench (Max 7) are full!`);
-            }
-            return false; 
-        }
-        slot = 'BENCH';
+      if (cr.BENCH.length >= 7) { if(turn===1) setErrorMsg(`${pos} slots and bench are full.`); return false; }
+      slot = 'BENCH';
     }
 
-    if (slot === 'BENCH') {
-        currentRoster.BENCH.push(player);
-    } else {
-        currentRoster[slot] = player;
-    }
+    if (slot==='BENCH') cr.BENCH.push(player); else cr[slot]=player;
+    const ur = { ...rosters, [cu]:cr };
+    setRosters(ur);
+    setPickHistory(h => [...h, { pick:h.length+1, round, turn, player, slot }]);
+    if (draftId) axios.post(`http://localhost:8080/api/drafts/${draftId}/pick`, { player, user:cu, round, turn, slot }).catch(()=>{});
 
-    const updatedRosters = { ...rosters, [currentUser]: currentRoster };
-    setRosters(updatedRosters);
+    const p1c=countPlayers(ur.user1), p2c=countPlayers(ur.user2);
+    if (p1c>=16 && p2c>=16) { setDone(true); await finishDraft(ur); return true; }
 
-    if (draftId) {
-      axios.post(`http://localhost:8080/api/drafts/${draftId}/pick`, {
-        player,
-        user: currentUser, // "user1" or "user2"
-        round,
-        turn,
-        slot // <--- ADD THIS! (It passes "QB", "RB1", "BENCH", etc.)
-      }).catch(err => console.error("Pick save failed", err));
-    }
-    
-    // CHECK FOR DRAFT COMPLETION (16 players per team = 9 starters + 7 bench)
-    const p1Count = countPlayers(updatedRosters.user1);
-    const p2Count = countPlayers(updatedRosters.user2);
-    
-    if (p1Count >= 16 && p2Count >= 16) {
-        setIsDraftComplete(true);
-
-        await finishDraft(updatedRosters);
-        return true;
-    }
-
-    const newPool = allPlayers.filter(p => p.player_id !== player.player_id);
+    const newPool = allPlayers.filter(p => p.player_id!==player.player_id);
     setAllPlayers(newPool);
-
-    if (turn === 2) {
-      setTurn(1);
-      setRound(prev => prev + 1);
-    } else {
-      setTurn(2);
-    }
-    
-    if (gameMode === 'PVP' || turn === 2) setAiAdvice('');
-    return true; 
-  };
-
-  const askAI = async () => {
-    setAiLoading(true);
-    const currentUser = `user${turn}`;
-    try {
-      const res = await axios.post('http://localhost:8080/api/ai/suggest', {
-        roster: rosters[currentUser],
-        availablePlayers: allPlayers.slice(0, 100),
-        round: round
-      });
-      setAiAdvice(res.data.reason ? `${res.data.player}: ${res.data.reason}` : "AI could not decide.");
-    } catch (err) {
-      console.error(err);
-      setAiAdvice("Error connecting to AI.");
-    }
-    setAiLoading(false);
-  };
+    if (turn===2) { setTurn(1); setRound(r=>r+1); } else setTurn(2);
+    return true;
+  }, [turn, rosters, allPlayers, round, draftId]);
 
   useEffect(() => {
-    if (!isDraftComplete && gameMode === 'PvAI' && turn === 2) {
-      if (rightPanelRef.current) {
-        rightPanelRef.current.scrollTo({ top: rightPanelRef.current.scrollHeight, behavior: 'smooth' });
+    if (isDraftComplete || !(gameMode==='PvAI' && turn===2)) return;
+    const go = async () => {
+      setAiLoading(true);
+      const cr = rosters.user2;
+      let pool = allPlayers;
+      if (cr.BENCH.length >= 7) {
+        const need = [];
+        if(!cr.QB) need.push('QB');
+        if(!cr.RB1||!cr.RB2) need.push('RB');
+        if(!cr.WR1||!cr.WR2) need.push('WR');
+        if(!cr.TE) need.push('TE');
+        if(!cr.DST) need.push('DEF');
+        if(!cr.K) need.push('K');
+        pool = allPlayers.filter(p=>need.includes(p.position));
+        if(!pool.length) pool = allPlayers;
       }
+      let pick = null;
+      try {
+        const res = await axios.post('http://localhost:8080/api/ai/suggest', { roster:rosters.user2, availablePlayers:pool.slice(0,15), round }, { timeout:8000 });
+        if (res.data.player) pick = pool.find(p=>p.full_name.toLowerCase().includes(res.data.player.toLowerCase()));
+      } catch {}
+      if (!pick) pick = pool.find(p=>['QB','RB','WR','TE'].includes(p.position)) || pool[0];
+      if (pick) draftPlayer(pick);
+      setAiLoading(false);
+    };
+    const t = setTimeout(go, 700);
+    return () => clearTimeout(t);
+  }, [turn, gameMode, round, isDraftComplete]);
 
-      const performAiPick = async () => {
-        setAiLoading(true);
-        let playerToDraft = null;
-
-        const cpuRoster = rosters.user2;
-        let availableForCpu = allPlayers;
-
-        if (cpuRoster.BENCH.length >= 7) {
-            const neededPos = [];
-            if (!cpuRoster.QB) neededPos.push('QB');
-            if (!cpuRoster.RB1 || !cpuRoster.RB2) neededPos.push('RB');
-            if (!cpuRoster.WR1 || !cpuRoster.WR2) neededPos.push('WR');
-            if (!cpuRoster.TE) neededPos.push('TE');
-            if (!cpuRoster.DST) neededPos.push('DEF');
-            if (!cpuRoster.K) neededPos.push('K');
-            if (!cpuRoster.FLEX) neededPos.push('RB', 'WR', 'TE');
-            
-            availableForCpu = allPlayers.filter(p => neededPos.includes(p.position));
-            if (availableForCpu.length === 0) availableForCpu = allPlayers; 
-        }
-
-        try {
-          const res = await axios.post('http://localhost:8080/api/ai/suggest', {
-            roster: rosters.user2,
-            availablePlayers: availableForCpu.slice(0, 15),
-            round: round
-          }, { timeout: 8000 });
-          
-          const suggestedName = res.data.player;
-          if (suggestedName) {
-              playerToDraft = availableForCpu.find(p => 
-                p.full_name.toLowerCase().includes(suggestedName.toLowerCase()) ||
-                suggestedName.toLowerCase().includes(p.full_name.toLowerCase())
-              );
-          }
-          if (playerToDraft) setAiAdvice(`AI Auto-Drafted: ${playerToDraft.full_name}`);
-        } catch (err) {
-          console.warn("⚠️ AI Timeout/Error, skipping to fallback.");
-        }
-
-        if (!playerToDraft && availableForCpu.length > 0) {
-            playerToDraft = availableForCpu.find(p => ['QB', 'RB', 'WR', 'TE'].includes(p.position));
-            if (!playerToDraft) playerToDraft = availableForCpu[0];
-            setAiAdvice(`AI Auto-Drafted: ${playerToDraft.full_name} (Fallback)`);
-        }
-
-        if (playerToDraft) draftPlayer(playerToDraft);
-        setAiLoading(false);
-      };
-
-      const timer = setTimeout(performAiPick, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [turn, gameMode, allPlayers, round, isDraftComplete]);
-
- 
-  if (isDraftComplete) {
-    return <DraftRecap rosters={rosters} onRestart={restartDraft} />;
-  }
-
-  
-  const RosterSlot = ({ label, player }) => (
-    <div className="flex items-center bg-gray-800/40 p-2 rounded mb-1 border border-gray-700/50 hover:bg-gray-800 transition-colors min-h-[44px]">
-      <div className="w-8 font-bold text-gray-500 text-[10px] tracking-widest">{label}</div>
-      {player ? (
-        <div className="flex items-center flex-1 min-w-0">
-          <img 
-            src={getPlayerImage(player)} 
-            className={`w-8 h-8 rounded-full border border-gray-600 mr-2 object-cover ${player.position === 'DEF' ? 'bg-transparent border-transparent' : 'bg-gray-300'}`}
-            alt="p"
-          />
-          <div className="flex-1 overflow-hidden">
-            <div className="text-sm font-bold text-gray-100 truncate">{player.full_name}</div>
-            <div className="text-[10px] text-blue-400">{player.position} • {player.team}</div>
-          </div>
-        </div>
-      ) : (
-        <div className="text-gray-600 text-xs italic">Empty</div>
-      )}
-    </div>
-  );
-
-  const renderRoster = (userKey) => {
-    const r = rosters[userKey];
-    const isMyTurn = turn === (userKey === 'user1' ? 1 : 2);
-    const initial = userKey === 'user1' ? 'H' : 'C'; 
-    
-    return (
-      <div className={`flex flex-col p-4 rounded-2xl border transition-all duration-300 mb-6 shrink-0 ${
-        isMyTurn 
-          ? 'bg-gray-800/80 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]' 
-          : 'bg-gray-900/50 border-gray-800 opacity-80'
-      }`}>
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-700">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shadow-inner ${
-                isMyTurn ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
-            }`}>
-                {initial}
-            </div>
-            
-            <div className="flex-1">
-                <h3 className={`font-bold text-sm uppercase tracking-wider ${
-                isMyTurn ? 'text-white' : 'text-gray-400'
-                }`}>
-                {userKey === 'user1' ? "Team Human" : "Team CPU"}
-                </h3>
-                {isMyTurn && <div className="text-[10px] text-blue-400 font-bold animate-pulse">● PICKING NOW</div>}
-            </div>
-        </div>
-
-        <div className="flex-1">
-          <RosterSlot label="QB" player={r.QB} />
-          <RosterSlot label="RB" player={r.RB1} />
-          <RosterSlot label="RB" player={r.RB2} />
-          <RosterSlot label="WR" player={r.WR1} />
-          <RosterSlot label="WR" player={r.WR2} />
-          <RosterSlot label="TE" player={r.TE} />
-          <RosterSlot label="FLX" player={r.FLEX} />
-          <RosterSlot label="DEF" player={r.DST} />
-          <RosterSlot label="K" player={r.K} />
-          <div className="mt-4 pt-2 border-t border-gray-700">
-             <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider font-bold">Bench ({r.BENCH.length}/7)</div>
-             {r.BENCH.length === 0 && <div className="text-xs text-gray-600 italic pl-8">No bench players</div>}
-             {r.BENCH.map((p, i) => <RosterSlot key={i} label={`BN`} player={p} />)}
-          </div>
-        </div>
-      </div>
-    );
+  const restart = () => {
+    setRosters({ user1:getEmptyRoster(), user2:getEmptyRoster() });
+    setTurn(1); setRound(1); setErrorMsg(''); setDone(false); setPickHistory([]); setSidebarTab(0);
+    hasInit.current = false; setLoading(true);
+    axios.get('http://localhost:8080/api/players/fetch').then(r => { setAllPlayers(r.data); setDisplay(r.data); setLoading(false); });
   };
 
-  const categories = ['ALL', 'QB', 'RB', 'WR', 'TE', 'DEF', 'K'];
+  if (isDraftComplete) return (<><style>{THEME}</style><DraftRecap rosters={rosters} onRestart={restart} /></>);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-black text-white">
-      <div className="animate-bounce text-xl font-bold tracking-widest text-blue-500">LOADING DRAFT...</div>
-    </div>
+    <>
+      <style>{THEME}</style>
+      <div style={{ height:'100vh', background:'var(--bg-base)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-body)' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:36, color:'var(--text-primary)', marginBottom:8, fontStyle:'italic' }}>
+            Draft<span style={{ color:'var(--accent)' }}>Zone</span>
+          </div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', letterSpacing:'0.08em' }}>Loading player pool…</div>
+        </div>
+      </div>
+    </>
   );
 
+  const isMyTurn = turn === 1;
+
   return (
-    <div className="h-screen bg-[#0B0D12] text-white font-sans flex flex-col overflow-hidden selection:bg-blue-500 selection:text-white relative">
-      
-      
-      {errorMessage && (
-        <div className="absolute top-24 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-8 py-4 rounded-xl shadow-2xl z-[100] font-bold border border-red-400 animate-bounce flex items-center gap-3">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            {errorMessage}
-        </div>
-      )}
+    <>
+      <style>{THEME}</style>
+      <div style={{ height:'100vh', background:'var(--bg-base)', color:'var(--text-primary)', fontFamily:'var(--font-body)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-      
-      <header className="bg-[#111318] border-b border-gray-800 p-4 shrink-0 z-30 shadow-2xl">
-        <div className="max-w-[1920px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-             <div className="text-2xl font-black tracking-tighter text-white">
-               DRAFT<span className="text-blue-600">ZONE</span>
-             </div>
-             <div className="h-6 w-px bg-gray-700 mx-2"></div>
-             <div className="text-xs font-mono text-gray-400">
-               RD <span className="text-white font-bold">{round}</span> / PK <span className="text-white font-bold">{turn}</span>
-             </div>
+        {/* Toast */}
+        {errorMsg && (
+          <div className="dz-fade" style={{ position:'fixed', top:16, left:'50%', transform:'translateX(-50%)', zIndex:100, background:'var(--warn-light)', border:'1px solid var(--warn)', color:'var(--warn)', fontSize:12, fontWeight:500, padding:'8px 16px', borderRadius:'var(--radius-pill)', boxShadow:'var(--shadow-md)', whiteSpace:'nowrap' }}>
+            {errorMsg}
+          </div>
+        )}
+
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <header style={{ flexShrink:0, background:'var(--bg-raised)', borderBottom:'1px solid var(--border-default)', padding:'0 24px', height:56, display:'flex', alignItems:'center', gap:20, boxShadow:'var(--shadow-sm)' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:24, color:'var(--text-primary)', flexShrink:0, letterSpacing:'-0.01em' }}>
+            Draft<span style={{ color:'var(--accent)', fontStyle:'italic' }}>Zone</span>
           </div>
 
-          <div className="flex bg-black p-1 rounded-lg border border-gray-800">
-             <button onClick={() => setGameMode('PVP')} className={`px-5 py-2 rounded text-xs font-bold transition-all ${gameMode === 'PVP' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>PVP</button>
-             <button onClick={() => setGameMode('PvAI')} className={`px-5 py-2 rounded text-xs font-bold transition-all ${gameMode === 'PvAI' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>VS AI</button>
+          <div style={{ width:1, height:20, background:'var(--border-default)' }} />
+
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)' }}>
+              Round <strong style={{ color:'var(--text-primary)' }}>{round}</strong>
+              <span style={{ margin:'0 8px', color:'var(--border-strong)' }}>·</span>
+              Pick <strong style={{ color:'var(--text-primary)' }}>{pickHistory.length+1}</strong>
+            </span>
+            <div style={{
+              display:'flex', alignItems:'center', gap:6,
+              padding:'4px 12px', borderRadius:'var(--radius-pill)',
+              fontSize:11, fontWeight:600, letterSpacing:'0.04em',
+              background: isMyTurn ? 'var(--accent-light)' : aiLoading ? 'var(--cpu-light)' : 'var(--bg-inset)',
+              color: isMyTurn ? 'var(--accent-text)' : aiLoading ? 'var(--cpu-text)' : 'var(--text-muted)',
+              border:`1px solid ${isMyTurn?'var(--accent-mid)':aiLoading?'var(--cpu-accent)':'var(--border-default)'}44`,
+            }}>
+              {isMyTurn
+                ? <><span className="dz-blink" style={{ width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block' }} /> Your pick</>
+                : aiLoading
+                  ? <><span className="dz-blink" style={{ width:6,height:6,borderRadius:'50%',background:'var(--cpu-accent)',display:'inline-block' }} /> CPU picking…</>
+                  : 'Waiting'
+              }
+            </div>
           </div>
 
-          <div className="w-full md:w-auto text-right">
-             {(gameMode === 'PVP' || turn === 1) && (
-               <button onClick={askAI} disabled={aiLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded font-bold text-sm shadow-lg shadow-emerald-900/20 transition hover:translate-y-[-2px]">
-                 {aiLoading ? "ANALYSING..." : "ASK AI ASSISTANT"}
-               </button>
-             )}
-             {aiAdvice && <div className="text-[10px] text-yellow-400 mt-2 font-mono tracking-wide animate-pulse">{aiAdvice}</div>}
+          <div style={{ marginLeft:'auto', display:'flex', background:'var(--bg-inset)', border:'1px solid var(--border-default)', borderRadius:'var(--radius-md)', padding:3, gap:2 }}>
+            {['PVP','PvAI'].map(m => (
+              <button key={m} onClick={()=>setGameMode(m)} style={{
+                padding:'5px 16px', borderRadius:'var(--radius-sm)', border:'none',
+                fontSize:11, fontWeight:600, letterSpacing:'0.04em', fontFamily:'var(--font-body)', cursor:'pointer',
+                background: gameMode===m ? (m==='PVP'?'var(--accent)':'var(--cpu-accent)') : 'transparent',
+                color: gameMode===m ? 'var(--text-inverse)' : 'var(--text-muted)',
+              }}>{m}</button>
+            ))}
           </div>
-        </div>
-      </header>
+        </header>
 
-      
-      <div className="flex-1 flex overflow-hidden max-w-[1920px] w-full mx-auto p-6 gap-6">
-        
-      
-        <div className="flex-[3] flex flex-col gap-6 overflow-hidden min-w-0">
-          
-          
-          <div className="flex flex-col gap-4 shrink-0">
-            <div className="relative group">
-              <input 
-                type="text" 
-                placeholder="Search players..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-[#1A1D24] border border-gray-800 text-white p-4 pl-12 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-lg placeholder-gray-600"
-              />
-              <svg className="w-5 h-5 text-gray-500 absolute left-4 top-4.5 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        {/* ── Body ──────────────────────────────────────────────────── */}
+        <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+
+          {/* Player Pool */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', borderRight:'1px solid var(--border-subtle)' }}>
+
+            {/* Search + filters */}
+            <div style={{ flexShrink:0, padding:'12px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-surface)', display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ position:'relative' }}>
+                <svg style={{ position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'var(--text-muted)',pointerEvents:'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
+                  placeholder="Search players…"
+                  style={{ ...S.input, paddingLeft:32, width:'100%' }}
+                  onFocus={e=>e.target.style.borderColor='var(--accent)'}
+                  onBlur={e=>e.target.style.borderColor='var(--border-default)'}
+                />
+              </div>
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                {CATEGORIES.map(cat => {
+                  const m = POS_META[cat];
+                  const active = filterPos===cat;
+                  return (
+                    <button key={cat} onClick={()=>setFilterPos(cat)} style={{
+                      padding:'4px 12px', borderRadius:'var(--radius-pill)',
+                      fontSize:11, fontWeight:600, letterSpacing:'0.04em',
+                      fontFamily:'var(--font-body)', cursor:'pointer',
+                      border: active ? `1px solid ${m?.color||'var(--accent)'}66` : '1px solid var(--border-subtle)',
+                      background: active ? (m?.bg||'var(--accent-light)') : 'transparent',
+                      color: active ? (m?.color||'var(--accent)') : 'var(--text-secondary)',
+                    }}>{cat}</button>
+                  );
+                })}
+                <span style={{ marginLeft:'auto', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)' }}>
+                  {displayPlayers.length} available
+                </span>
+              </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setFilterPos(cat)}
-                  className={`px-5 py-2 rounded-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 ${
-                    filterPos === cat 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 ring-1 ring-blue-400' 
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700'
-                  }`}
-                >
-                  {cat}
-                </button>
+            {/* Column headers */}
+            <div style={{ flexShrink:0, display:'grid', gridTemplateColumns:'36px 36px 1fr 54px 60px 64px 100px', gap:8, padding:'8px 16px', background:'var(--bg-inset)', borderBottom:'1px solid var(--border-default)' }}>
+              {['#','','Player','Pos','Pts','ADP',''].map((h,i)=>(
+                <span key={i} style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.07em', fontFamily:'var(--font-mono)', textAlign:i>=4&&i<=5?'right':'left' }}>{h}</span>
               ))}
             </div>
+
+            {/* Rows */}
+            <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto' }}>
+              {displayPlayers.slice(0,120).map((p,i)=>(
+                <PlayerRow key={p.player_id} player={p} rank={i+1} onDraft={draftPlayer} onSelect={setSelected} isDisabled={gameMode==='PvAI'&&turn===2} />
+              ))}
+              {displayPlayers.length===0 && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:80, color:'var(--text-muted)', fontSize:13 }}>No players found</div>
+              )}
+            </div>
           </div>
 
-          
-          <div className="flex-1 overflow-y-auto pr-2 pb-20 custom-scrollbar">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-              {displayPlayers.slice(0, 80).map(p => (
-                <div key={p.player_id} className="bg-[#1e2128] rounded-xl border border-gray-700 hover:border-blue-500 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col group relative overflow-hidden min-h-[260px]">
-                  <div className={`h-1.5 w-full ${
-                      p.position === 'QB' ? 'bg-pink-500' :
-                      p.position === 'RB' ? 'bg-green-500' :
-                      p.position === 'WR' ? 'bg-blue-500' :
-                      p.position === 'TE' ? 'bg-orange-500' :
-                      p.position === 'DEF' ? 'bg-purple-500' :
-                      'bg-gray-500'
-                  }`}></div>
+          {/* Sidebar */}
+          <div style={{ width:300, flexShrink:0, display:'flex', flexDirection:'column', background:'var(--bg-surface)' }}>
 
-                  <div className="pt-6 pb-2 flex justify-center items-center">
-                      <div className="relative">
-                          <img 
-                            src={getPlayerImage(p)} 
-                            alt={p.full_name}
-                            className={`w-20 h-20 shadow-lg object-contain ${
-                              p.position === 'DEF' ? 'rounded-none' : 'rounded-full bg-gray-200 border-2 border-gray-600 object-cover'
-                            }`}
-                            loading="lazy"
-                            onError={(e) => e.target.src = "https://sleepercdn.com/images/v2/icons/player_default.webp"}
-                          />
-                          <span className="absolute -bottom-2 -right-2 bg-gray-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-600 text-gray-300">
-                            {p.position}
-                          </span>
-                      </div>
-                  </div>
-                  
-                  <div className="px-2 pb-4 text-center flex-1 flex flex-col justify-center">
-                      <div className="font-bold text-white text-sm mb-1 leading-tight line-clamp-2">{p.full_name}</div>
-                      <div className="text-[11px] text-gray-500 font-mono">{p.team || "FA"}</div>
-                  </div>
+            {/* Tabs */}
+            <div style={{ display:'flex', borderBottom:'1px solid var(--border-default)', flexShrink:0, background:'var(--bg-raised)' }}>
+              {SIDEBAR_TABS.map((tab,i)=>(
+                <button key={tab} onClick={()=>setSidebarTab(i)} style={{
+                  flex:1, padding:'11px 4px',
+                  fontSize:11, fontWeight:600, letterSpacing:'0.03em',
+                  fontFamily:'var(--font-body)', border:'none', background:'transparent', cursor:'pointer',
+                  color: sidebarTab===i ? 'var(--accent-text)' : 'var(--text-muted)',
+                  borderBottom: sidebarTab===i ? '2px solid var(--accent)' : '2px solid transparent',
+                }}>{tab}</button>
+              ))}
+            </div>
 
-                  <div className="grid grid-cols-2 border-t border-gray-700 divide-x divide-gray-700 mt-auto">
-                      <button 
-                        onClick={() => setSelectedPlayer(p)}
-                        className="py-3 text-[10px] font-bold text-gray-400 hover:text-white hover:bg-gray-700 transition-colors uppercase"
-                      >
-                        Stats
-                      </button>
-                      <button 
-                        onClick={() => draftPlayer(p)}
-                        disabled={gameMode === 'PvAI' && turn === 2}
-                        className={`py-3 text-[10px] font-bold uppercase transition-colors ${
-                          gameMode === 'PvAI' && turn === 2 
-                          ? 'text-gray-600 cursor-not-allowed bg-gray-900'
-                          : 'text-blue-400 hover:text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        Draft
-                      </button>
-                  </div>
+            <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+              {sidebarTab===0 && <AIChatPanel roster={rosters.user1} allPlayers={allPlayers} round={round} turn={turn} />}
+              {sidebarTab===1 && (
+                <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12 }}>
+                  <RosterPanel roster={rosters.user1} label="Team Human" isActive={turn===1} />
                 </div>
-              ))}
+              )}
+              {sidebarTab===2 && (
+                <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12 }}>
+                  <RosterPanel roster={rosters.user2} label="Team CPU" isActive={turn===2} />
+                </div>
+              )}
             </div>
+
+            {/* Pick history */}
+            {pickHistory.length > 0 && (
+              <div style={{ flexShrink:0, borderTop:'1px solid var(--border-subtle)', padding:'10px 14px', background:'var(--bg-raised)' }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'var(--font-mono)', marginBottom:8 }}>Recent picks</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  {[...pickHistory].reverse().slice(0,3).map((h,i)=>(
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:8, fontSize:11 }}>
+                      <span style={{ fontFamily:'var(--font-mono)', color:'var(--text-muted)', width:20, textAlign:'right', flexShrink:0 }}>{h.pick}.</span>
+                      <span style={{ fontWeight:600, color:h.turn===1?'var(--accent-text)':'var(--cpu-text)', flexShrink:0, fontFamily:'var(--font-mono)', fontSize:10 }}>
+                        {h.turn===1?'HUM':'CPU'}
+                      </span>
+                      <span style={{ color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{h.player.full_name}</span>
+                      <PosBadge pos={h.player.position} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        
-        <div ref={rightPanelRef} className="flex-1 min-w-[320px] max-w-md flex flex-col gap-4 overflow-y-auto pb-8 custom-scrollbar">
-           {renderRoster('user1')}
-           {renderRoster('user2')}
-        </div>
-
+        {selectedPlayer && <PlayerModal player={selectedPlayer} onClose={()=>setSelected(null)} onDraft={draftPlayer} />}
       </div>
-
-      
-      {selectedPlayer && (
-        <PlayerModal 
-          player={selectedPlayer} 
-          onClose={() => setSelectedPlayer(null)} 
-          onDraft={(p) => draftPlayer(p)}
-        />
-      )}
-    </div>
+    </>
   );
 };
 
