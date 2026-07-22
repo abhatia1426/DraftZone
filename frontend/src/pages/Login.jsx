@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import DraftLogo from '../assets/FFLogo.jpeg';
+import Logo from '../components/Logo';
+import { useNotify } from '../components/NotificationProvider';
 
 const Login = ({ onLogin }) => {
     const [isSignup, setIsSignup] = useState(false);
@@ -10,6 +11,7 @@ const Login = ({ onLogin }) => {
     const [role, setRole] = useState('user'); // Default to user
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const notify = useNotify();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,7 +33,7 @@ const Login = ({ onLogin }) => {
 
                 onLogin(res.data.user); // Update App state
 
-                if (isSignup) alert(`Account created as ${userRole.toUpperCase()}! Logging in...`);
+                if (isSignup) notify({ type: 'success', title: 'Account created', message: `Signed in as ${userRole}` });
 
                 // Redirect based on role
                 if(userRole === 'admin') {
@@ -66,11 +68,7 @@ const Login = ({ onLogin }) => {
           <nav className="bg-transparent relative z-50">
             <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <img
-                  src={DraftLogo}
-                  className="h-12 w-12 rounded-full"
-                  alt="Fantasy Football Logo"
-                />
+                <Logo size={48} />
                 <span className="text-2xl font-bold tracking-wide">
                   <span className="text-white">DRAFT</span>
                   <span className="text-[#1DB954]">ZONE</span>

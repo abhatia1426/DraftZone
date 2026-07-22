@@ -25,7 +25,7 @@ router.get('/fetch', async (req, res) => {
           player_id: player.player_id,
           full_name: `${player.first_name} ${player.last_name}`,
           position: 'DEF',
-          team: player.player_id,
+          team: player.team,
           // CHANGE: Set rank to 400 so they appear AFTER top offensive players
           search_rank: 400, 
           stats: {
@@ -33,7 +33,9 @@ router.get('/fetch', async (req, res) => {
             sack: playerStats.sack || 0,
             int: playerStats.int || 0,
             fum_rec: playerStats.fum_rec || 0,
-            pts_allow: playerStats.pts_allow || 0
+            pts_allow: playerStats.pts_allow || 0,
+            safe: playerStats.safe || 0,
+            def_td: playerStats.def_td || 0
           }
         });
       } 
@@ -48,13 +50,19 @@ router.get('/fetch', async (req, res) => {
           search_rank: player.search_rank || 99999,
           stats: {
             pts_ppr: playerStats.pts_ppr || 0,
+            pass_att: playerStats.pass_att || 0,
+            pass_cmp: playerStats.pass_cmp || 0,
             pass_yd: playerStats.pass_yd || 0,
             pass_td: playerStats.pass_td || 0,
+            pass_int: playerStats.pass_int || 0,
+            rush_att: playerStats.rush_att || 0,
             rush_yd: playerStats.rush_yd || 0,
             rush_td: playerStats.rush_td || 0,
+            rec_tgt: playerStats.rec_tgt || 0,
             rec_yd: playerStats.rec_yd || 0,
             rec_td: playerStats.rec_td || 0,
-            rec: playerStats.rec || 0
+            rec: playerStats.rec || 0,
+            fum_lost: playerStats.fum_lost || 0
           }
         });
       }
@@ -72,6 +80,31 @@ router.get('/fetch', async (req, res) => {
   } catch (error) {
     console.error(" Error fetching from Sleeper:", error.message);
     res.status(500).json({ error: "Failed to fetch data" });
+  }
+});
+
+// GET /api/players/:id/history — last few seasons of a player's stats
+router.get('/:id/history', async (req, res) => {
+  const { id } = req.params;
+  const seasons = [2024, 2023, 2022];
+
+  try {
+    const results = await Promise.all(
+      seasons.map(async (season) => {
+        try {
+          const { data } = await axios.get(`https://api.sleeper.app/v1/stats/nfl/regular/${season}`);
+          const s = data[id] || {};
+          return { season, pts_ppr: s.pts_ppr || 0, stats: s };
+        } catch {
+          return { season, pts_ppr: 0, stats: {} };
+        }
+      })
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error('Player History Error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch player history' });
   }
 });
 

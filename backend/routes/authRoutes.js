@@ -21,9 +21,20 @@ router.post('/login', async (req, res) => {
 
     if (mockUser) {
         console.log(" Logged in via Hardcoded Account");
+
+        // Demo accounts still need a real DB record so bets/balance have somewhere to live.
+        let dbUser = await User.findByEmail(mockUser.email);
+        if (!dbUser) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(mockUser.password, salt);
+            const result = await User.create(mockUser.email, hashedPassword, mockUser.role);
+            dbUser = { _id: result.insertedId };
+        }
+
         return res.json({
             success: true,
             user: {
+                _id: dbUser._id,
                 email: mockUser.email,
                 role: mockUser.role,
                 name: mockUser.name
@@ -49,6 +60,7 @@ router.post('/login', async (req, res) => {
         res.json({
             success: true,
             user: {
+                _id: dbUser._id,
                 email: dbUser.email,
                 role: dbUser.role,
                 name: "Fantasy Manager"
@@ -83,12 +95,13 @@ router.post('/signup', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
         const validRole = (role === 'admin') ? 'admin' : 'user';
 
-        await User.create(email, hashedPassword, validRole);
+        const result = await User.create(email, hashedPassword, validRole);
 
         console.log(` Created ${validRole} account`);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             user: {
+                _id: result.insertedId,
                 email: email,
                 role: validRole,
                 name: "New User"

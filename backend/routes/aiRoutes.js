@@ -6,6 +6,39 @@ const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
+router.post('/chat', async (req, res) => {
+  const { message, context } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
+
+  try {
+    const { round, turn, roster, bench, topAvailable } = context || {};
+
+    const prompt = `
+      You are a sharp, concise fantasy football draft assistant helping a user live during their draft.
+      Keep answers to 2-3 sentences, no markdown formatting.
+
+      Current round: ${round ?? '?'}
+      My roster: ${roster || 'Empty'}
+      My bench: ${bench || 'None'}
+      Top available players: ${topAvailable || 'Unknown'}
+
+      User question: ${message}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const reply = response.text().trim();
+
+    res.json({ reply });
+  } catch (error) {
+    console.error('AI Chat Error:', error.message);
+    res.status(500).json({ reply: "Scout's offline right now — try again in a moment." });
+  }
+});
+
 router.post('/suggest', async (req, res) => {
   const { roster, availablePlayers, round } = req.body;
 

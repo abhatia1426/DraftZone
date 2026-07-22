@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import DraftLogo from './assets/FFLogo.jpeg';
+import Logo from './components/Logo';
 
 export default function Authors() {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -51,11 +51,7 @@ export default function Authors() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3">
-            <img
-              src={DraftLogo}
-              className="h-12 w-12 rounded-full ring-2 ring-[#1DB954]/30"
-              alt="Fantasy Football Logo"
-            />
+            <Logo size={48} />
             <span className="text-2xl font-bold tracking-wide">
               <span className="text-white">DRAFT</span>
               <span className="text-[#1DB954]">ZONE</span>

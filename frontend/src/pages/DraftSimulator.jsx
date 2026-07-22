@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 // Theme: Warm editorial light — cream surfaces, charcoal type, grass-green accents
@@ -350,20 +351,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
       });
       setMessages(p => [...p, { role:'assistant', text:res.data.reply || 'No response.' }]);
     } catch {
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            model:'claude-sonnet-4-20250514', max_tokens:200,
-            system:`You are a sharp fantasy football draft assistant. Keep answers to 2-3 sentences. Round: ${round}. My roster: ${rosterSummary}. Bench: ${bench}. Top available: ${topAvail}.`,
-            messages:[{ role:'user', content:msg }]
-          })
-        });
-        const data = await res.json();
-        setMessages(p => [...p, { role:'assistant', text:data.content?.[0]?.text || 'No response.' }]);
-      } catch {
-        setMessages(p => [...p, { role:'assistant', text:'Scout offline — check your connection.' }]);
-      }
+      setMessages(p => [...p, { role:'assistant', text:'Scout offline — check your connection.' }]);
     }
     setLoading(false);
   }, [loading, roster, allPlayers, round, turn]);
@@ -534,7 +522,7 @@ const DraftRecap = ({ rosters, onRestart }) => {
 const CATEGORIES   = ['ALL','QB','RB','WR','TE','DEF','K'];
 const SIDEBAR_TABS = ['AI Scout','My Roster','CPU Roster'];
 
-const DraftSimulator = () => {
+const DraftSimulator = ({ onLogout }) => {
   const [draftId, setDraftId]         = useState(null);
   const [allPlayers, setAllPlayers]   = useState([]);
   const [displayPlayers, setDisplay]  = useState([]);
@@ -691,6 +679,13 @@ const DraftSimulator = () => {
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <header style={{ flexShrink:0, background:'var(--bg-raised)', borderBottom:'1px solid var(--border-default)', padding:'0 24px', height:56, display:'flex', alignItems:'center', gap:20, boxShadow:'var(--shadow-sm)' }}>
+          <Link to="/" style={{
+            display:'flex', alignItems:'center', justifyContent:'center',
+            width:30, height:30, borderRadius:'50%', flexShrink:0,
+            border:'1px solid var(--border-default)', color:'var(--text-secondary)',
+            textDecoration:'none', fontSize:14,
+          }} title="Exit draft">←</Link>
+
           <div style={{ fontFamily:'var(--font-display)', fontSize:24, color:'var(--text-primary)', flexShrink:0, letterSpacing:'-0.01em' }}>
             Draft<span style={{ color:'var(--accent)', fontStyle:'italic' }}>Zone</span>
           </div>
@@ -720,7 +715,20 @@ const DraftSimulator = () => {
             </div>
           </div>
 
-          <div style={{ marginLeft:'auto', display:'flex', background:'var(--bg-inset)', border:'1px solid var(--border-default)', borderRadius:'var(--radius-md)', padding:3, gap:2 }}>
+          <nav style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
+            {[['Search','/player-search'],['Odds','/odds'],['Bets','/my-bets']].map(([label,to]) => (
+              <Link key={to} to={to} style={{
+                fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
+                color:'var(--text-secondary)', textDecoration:'none', fontFamily:'var(--font-body)',
+              }}>{label}</Link>
+            ))}
+            <button onClick={onLogout} style={{
+              fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
+              color:'var(--text-secondary)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font-body)',
+            }}>Log out</button>
+          </nav>
+
+          <div style={{ display:'flex', background:'var(--bg-inset)', border:'1px solid var(--border-default)', borderRadius:'var(--radius-md)', padding:3, gap:2 }}>
             {['PVP','PvAI'].map(m => (
               <button key={m} onClick={()=>setGameMode(m)} style={{
                 padding:'5px 16px', borderRadius:'var(--radius-sm)', border:'none',

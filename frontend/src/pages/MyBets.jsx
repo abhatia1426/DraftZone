@@ -1,345 +1,221 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import DraftLogo from "../assets/FFLogo.jpeg";
+import Logo from '../components/Logo';
 
-export default function MyBets() {
-    const [activeTab, setactiveTab] = useState("pending");
-    const [pendingBets, setPendingBets] = useState([]);
-    const [betHistory, setBetHistory] = useState([]);
-    const [userStats, setUserStats] = useState({ balance: 0, totalWagered: 0, totalWon: 0});
-    const [loading, setLoading] = useState(true);
+const NAV_LINKS = [
+  { label: 'Home', to: '/' },
+  { label: 'Players', to: '/player-search' },
+  { label: 'Draft', to: '/draft' },
+  { label: 'Odds', to: '/odds' },
+  { label: 'Authors', to: '/authors' },
+  { label: 'Bets', to: '/my-bets' },
+];
 
+const STATUS_STYLE = {
+  won: { color: '#2D6A2D', bg: '#EBF5EB' },
+  lost: { color: '#C4570A', bg: '#FEF0E6' },
+  pending: { color: '#8A6D1D', bg: '#FBF3D9' },
+};
 
-const userId = "6943417c55cff8664e9762d3"; 
+export default function MyBets({ user, onLogout }) {
+  const userId = user?._id;
+  const [activeTab, setActiveTab] = useState('pending');
+  const [pendingBets, setPendingBets] = useState([]);
+  const [betHistory, setBetHistory] = useState([]);
+  const [userStats, setUserStats] = useState({ balance: 0, totalWagered: 0, totalWon: 0 });
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
+    if (!userId) return;
     fetchBets();
-}, []);
+  }, [userId]);
 
-const fetchBets = async () => {
+  const fetchBets = async () => {
     setLoading(true);
     try {
-        const statsRes = await fetch(`http://localhost:8080/api/bets/stats/${userId}`);
-        const statsData = await statsRes.json();
-        setUserStats(statsData);
+      const statsRes = await fetch(`http://localhost:8080/api/bets/stats/${userId}`);
+      setUserStats(await statsRes.json());
 
-        const pendingRes = await fetch(`http://localhost:8080/api/bets/pending/${userId}`);
-        const pendingData = await pendingRes.json();
-        setPendingBets(pendingData);
+      const pendingRes = await fetch(`http://localhost:8080/api/bets/pending/${userId}`);
+      setPendingBets(await pendingRes.json());
 
-        const historyRes = await fetch(`http://localhost:8080/api/bets/user/${userId}`);
-        const historyData = await historyRes.json();
-        setBetHistory(historyData.filter(bet => bet.status !== "pending"));
+      const historyRes = await fetch(`http://localhost:8080/api/bets/user/${userId}`);
+      const historyData = await historyRes.json();
+      setBetHistory(historyData.filter((bet) => bet.status !== 'pending'));
     } catch (error) {
-        console.error("Error fetching bets: ", error);
+      console.error('Error fetching bets: ', error);
     }
     setLoading(false);
-};
+  };
 
-const getStatusColor = (status) => {
-    switch(status) {
-        case "won": return "text-green-500";
-        case "lost" : return "text-red-500";
-        case "pending" : return "text-yellow-500";
-        default: return "text-gray-400";
-    }
-};
+  const wonCount = betHistory.filter((b) => b.status === 'won').length;
+  const lostCount = betHistory.filter((b) => b.status === 'lost').length;
+  const winRate = wonCount + lostCount === 0 ? '0%' : `${((wonCount / (wonCount + lostCount)) * 100).toFixed(1)}%`;
 
-const getStatusIcon = (status) => {
-    switch(status) {
-        case "won": return "✔️";
-        case "lost" : return "❌";
-        case "pending" : return "⏳";
-        default: return "❔";
-    }
-};
+  const STAT_CARDS = [
+    { label: 'Current balance', value: `$${(userStats.balance || 0).toFixed(2)}`, color: '#2D6A2D' },
+    { label: 'Total wagered', value: `$${(userStats.totalWagered || 0).toFixed(2)}`, color: '#1A1814' },
+    { label: 'Total won', value: `$${(userStats.totalWon || 0).toFixed(2)}`, color: '#2D6A2D' },
+    { label: 'Win rate', value: winRate, sub: `${wonCount}W - ${lostCount}L`, color: '#1A1814' },
+  ];
 
-const calculateWinRate = () => {
-    const wonBets = betHistory.filter(bet => bet.status === "won").length;
-    const lostBets = betHistory.filter(bet => bet.status === "lost").length;
-    const total = wonBets + lostBets;
-    if(total === 0) return "0%";
-    return `${((wonBets / total) * 100).toFixed(1)}%`;
-};
-
-return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-
-        <div className = "fixed inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-20 left-10 w-96 h-96 bg-green-500 rounded-full blur-3xl opacity-20" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-500 rounded-full blur-3xl opacity-20" />
+  const BetCard = ({ bet }) => {
+    const status = STATUS_STYLE[bet.status] || STATUS_STYLE.pending;
+    return (
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(253,250,245,0.7)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(26,24,20,0.08)' }}>
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h3 className="text-lg font-bold" style={{ color: '#1A1814' }}>{bet.awayTeam} @ {bet.homeTeam}</h3>
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: status.color, background: status.bg }}>
+                {bet.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-sm flex-wrap">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color: '#2D6A2D', background: '#EBF5EB' }}>
+                {bet.betType}
+              </span>
+              <span style={{ color: '#8A8272' }}>on {bet.teamName}</span>
+            </div>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: status.color }}>
+            {bet.odds > 0 ? '+' : ''}{bet.odds}
+          </p>
         </div>
 
-        <nav className = "fixed top-0 left-0 right-0 z-50 bg-slate900/30 backdrop-blur-md border-b border-[#1DB954]20">
-            <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-                <Link to ="/" className="flex items-center gap-3 group cursor-pointer">
-                    <div className ="relative">
-                        <img
-                            src={DraftLogo}
-                            className="h-12 w-12 rounded-full border-2 border-[#1DB954] group-hover:scale-110 transition-transform duration-300"
-                            alt="Fantasy Football Logo"
-                        />
-                        <div className="absolute inset-0 rounded-full bg-[#1DB954] opacity-0 group-hover:opacity-20 blur-xl transition-opacity" />
-                    </div>
-                    <span className="text-2xl font-bold tracking-tight text-white">
-                        DRAFT<span className="text-[#1DB954]">ZONE</span>
-                    </span>
+        <div className="grid grid-cols-3 gap-4 pt-4" style={{ borderTop: '1px solid rgba(26,24,20,0.06)' }}>
+          <div>
+            <p className="text-xs mb-1" style={{ color: '#8A8272' }}>Wagered</p>
+            <p className="text-base font-semibold" style={{ color: '#1A1814' }}>${bet.amount.toFixed(2)}</p>
+          </div>
+          <div>
+            <p className="text-xs mb-1" style={{ color: '#8A8272' }}>{bet.status === 'lost' ? 'Lost' : 'To win'}</p>
+            <p className="text-base font-semibold" style={{ color: bet.status === 'lost' ? '#C4570A' : '#2D6A2D' }}>
+              ${(bet.status === 'lost' ? bet.amount : bet.profit).toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs mb-1" style={{ color: '#8A8272' }}>Payout</p>
+            <p className="text-base font-semibold" style={{ color: '#1A1814' }}>
+              ${bet.status === 'lost' ? '0.00' : bet.potentialPayout.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 flex justify-between items-center flex-wrap gap-1" style={{ borderTop: '1px solid rgba(26,24,20,0.06)' }}>
+          <p className="text-xs" style={{ color: '#A89E8E' }}>
+            Placed {new Date(bet.placedAt).toLocaleDateString()}
+          </p>
+          {bet.settledAt && (
+            <p className="text-xs" style={{ color: '#A89E8E' }}>
+              Settled {new Date(bet.settledAt).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full min-h-screen" style={{ background: '#F5F2EC', fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+        .dz-wordmark { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+        .dz-heading { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; }
+      `}</style>
+
+      <nav className="sticky top-0 z-50" style={{ background: 'rgba(245,242,236,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0">
+            <Logo size={36} />
+            <span className="dz-wordmark text-2xl" style={{ color: '#1A1814' }}>
+              DRAFT<span style={{ color: '#2D6A2D' }}>ZONE</span>
+            </span>
+          </Link>
+          <div className="hidden md:flex gap-8 text-sm font-medium">
+            {NAV_LINKS.map((item) => (
+              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Bets' ? '#1A1814' : '#6B6456' }}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="px-4 py-2 rounded-full text-sm" style={{ background: '#EBF5EB', border: '1px solid rgba(45,106,45,0.2)' }}>
+              <span style={{ color: '#4A7A4A' }}>Balance: </span>
+              <span className="font-semibold" style={{ color: '#2D6A2D' }}>${(userStats.balance || 0).toFixed(2)}</span>
+            </div>
+            <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: '#6B6456' }}>
+              Log out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="text-center mb-10">
+          <h1 className="dz-heading text-4xl md:text-5xl font-bold mb-3" style={{ color: '#1A1814' }}>Bet tracker</h1>
+          <p className="text-base" style={{ color: '#6B6456' }}>Track your wagers and winnings.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+          {STAT_CARDS.map((stat) => (
+            <div key={stat.label} className="rounded-2xl p-6" style={{ background: 'rgba(253,250,245,0.7)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(26,24,20,0.08)' }}>
+              <div className="text-3xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
+              <div className="text-sm mt-1" style={{ color: '#8A8272' }}>{stat.label}</div>
+              {stat.sub && <div className="text-xs mt-1" style={{ color: '#A89E8E' }}>{stat.sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mb-8" style={{ borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
+          {[{ key: 'pending', label: `Pending bets (${pendingBets.length})` }, { key: 'history', label: `Bet history (${betHistory.length})` }].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className="px-5 py-3 text-sm font-semibold transition-colors"
+              style={{
+                color: activeTab === tab.key ? '#2D6A2D' : '#8A8272',
+                borderBottom: activeTab === tab.key ? '2px solid #2D6A2D' : '2px solid transparent',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {loading && (
+          <div className="text-center py-24" style={{ color: '#8A8272' }}>Loading bets…</div>
+        )}
+
+        {!loading && activeTab === 'pending' && (
+          <div className="space-y-4">
+            {pendingBets.length === 0 ? (
+              <div className="text-center py-24">
+                <p className="text-lg font-semibold mb-2" style={{ color: '#1A1814' }}>No pending bets</p>
+                <p className="text-sm mb-6" style={{ color: '#8A8272' }}>Place your first bet to get started.</p>
+                <Link to="/odds" className="inline-block px-6 py-2.5 rounded-full text-sm font-medium" style={{ background: '#1A1814', color: '#FDFAF5' }}>
+                  View odds
                 </Link>
-
-                <div className="flex gap-4 md:gap-8 text-xs md:text-sm font-bold uppercase tracking-wider">
-                    <Link to="/" className="relative text-gray-400 hover:text-white transition-colors group">
-                    Home
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
-                    </Link>
-                    <Link to="/player-search" className="relative text-gray-400 hover:text-white transition-colors group">
-                    Players
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
-                    </Link>
-                    <Link to="/draft" className="relative text-gray-400 hover:text-white transition-colors group">
-                    Draft
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
-                    </Link>
-                    <Link to="/odds" className="relative text-gray-400 hover:text-white transition-colors group">
-                    Odds
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
-                    </Link>
-                    <Link to="/my-bets" className="relative text-white transition-colors group">
-                    My Bets
-                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#1DB954]" />
-                    </Link>
-                    <Link to="/login" className="relative text-gray-400 hover:text-white transition-colors group">
-                    Login
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1DB954] group-hover:w-full transition-all duration-300" />
-                    </Link>
-                </div>
-
-                <div className="px-4 py-2 bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-full">
-                    <span className="text-gray-400 text-sm mr-2">Balance:</span>
-                    <span className="text-[#1DB954] font-bold text-lg">${userStats.balance?.toFixed(2) || "0.00"}</span>
-                </div>
-            </div>
-        </nav>
-
-        <div className="max-w-7xl mx-auto px-6 pt-32 pb-12 relative z-10">
-            <div className="mb-12 text-center">
-                <h1 className="text-6xl md:text-7xl font-black mb-4 bg-gradient-to-r from-white via-green-500 to-white bg-clip-text text-transparent">
-                    Bet Tracker
-                </h1>
-                <p className="text-gray-400 text-xl">Track your wagers and winnings</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border border-green-500/20">
-                    <p className="text-gray-400 text-sm mb-2">Current Balance</p>
-                    <p className="text-4xl font-black text-green-500">${userStats.balance?.toFixed(2) || "0.00"}</p>
-                </div>
-          
-                <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border border-green-500/20">
-                    <p className="text-gray-400 text-sm mb-2">Total Wagered</p>
-                    <p className="text-4xl font-black text-white">${userStats.totalWagered?.toFixed(2) || "0.00"}</p>
-                </div>
-          
-                <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border border-green-500/20">
-                    <p className="text-gray-400 text-sm mb-2">Total Won</p>
-                    <p className="text-4xl font-black text-green-500">${userStats.totalWon?.toFixed(2) || "0.00"}</p>
-                </div>
-          
-                <div className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border border-green-500/20">
-                    <p className="text-gray-400 text-sm mb-2">Win Rate</p>
-                    <p className="text-4xl font-black text-white">{calculateWinRate()}</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                    {betHistory.filter(b => b.status === "won").length}W - {betHistory.filter(b => b.status === "lost").length}L
-                    </p>
-                </div>
-             </div>
-
-             <div className="flex gap-4 mb-8 border-b border-green-500/20">
-                <button
-                    onClick={() => setactiveTab("pending")}
-                    className={`px-6 py-3 font-bold transitionall ${
-                        activeTab === "pending"
-                         ? "text-green-500 border-b-2 border-green-500"
-                         : "text-gray-400 hover:text-white"
-                    }`}
-                >
-                    Pending Bets ({pendingBets.length})
-                </button>
-                <button 
-                    onClick={() => setactiveTab("history")}
-                    className={`px-7 py-3 font-bold transition-all ${
-                        activeTab === "history"
-                         ? "text-green-500 border-b-2 border-green-500"
-                         : "text-gray-400 hover:text-white"
-                    }`}
-                >
-                    Bet History ({betHistory.length})
-                </button>
-             </div>
-
-             {loading && (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-16 h-16 border-4 border-green-500/20 border-t-green-500 rounded-full animate-spin mb-4"></div>
-                    <p className="text-gray-400 text-xl">Loading Bets ...</p>
-                </div>
-             )}
-
-             {/* Pending Bets */}
-            {!loading && activeTab === "pending" && (
-            <div className="space-y-6">
-                {pendingBets.length === 0 ? (
-                <div className="text-center py-20">
-                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-500/10 mb-6 border border-green-500/30">
-                    <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    </div>
-                    <p className="text-gray-300 text-2xl font-bold mb-2">No pending bets</p>
-                    <p className="text-gray-500 text-lg mb-6">Place your first bet to get started!</p>
-                    <Link
-                    to="/odds"
-                    className="inline-block px-8 py-3 bg-green-500 text-black font-bold rounded-xl hover:bg-green-600 transition-all"
-                    >
-                    View Odds
-                    </Link>
-                </div>
-                ) : (
-                pendingBets.map((bet) => (
-                    <div
-                    key={bet._id}
-                    className="bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border border-green-500/20 hover:border-green-500/50 transition-all"
-                    >
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-2xl">{getStatusIcon(bet.status)}</span>
-                            <h3 className="text-2xl font-bold text-white">{bet.awayTeam} @ {bet.homeTeam}</h3>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                            <span className="px-3 py-1 bg-green-500/20 text-green-500 rounded-full font-bold">
-                            {bet.betType}
-                            </span>
-                            <span className="text-gray-400">on {bet.teamName}</span>
-                        </div>
-                        </div>
-                        <div className="text-right">
-                        <p className={`text-3xl font-black ${getStatusColor(bet.status)}`}>
-                            {bet.odds > 0 ? '+' : ''}{bet.odds}
-                        </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 pt-4 border-t border-green-500/20">
-                        <div>
-                        <p className="text-gray-400 text-sm mb-1">Wagered</p>
-                        <p className="text-xl font-bold text-white">${bet.amount.toFixed(2)}</p>
-                        </div>
-                        <div>
-                        <p className="text-gray-400 text-sm mb-1">To Win</p>
-                        <p className="text-xl font-bold text-green-500">${bet.profit.toFixed(2)}</p>
-                        </div>
-                        <div>
-                        <p className="text-gray-400 text-sm mb-1">Total Payout</p>
-                        <p className="text-xl font-bold text-white">${bet.potentialPayout.toFixed(2)}</p>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-green-500/20">
-                        <p className="text-gray-400 text-sm">
-                        Placed on {new Date(bet.placedAt).toLocaleDateString()} at {new Date(bet.placedAt).toLocaleTimeString()}
-                        </p>
-                    </div>
-                    </div>
-                    ))
-                )}
-            </div>
-            )}
-            {!loading && activeTab === "history" && (
-          <div className="space-y-6">
-            {betHistory.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-gray-300 text-2xl font-bold mb-2">No bet history yet</p>
-                <p className="text-gray-500 text-lg">Your completed bets will appear here</p>
               </div>
             ) : (
-              betHistory.map((bet) => (
-                <div
-                  key={bet._id}
-                  className={`bg-slate-800/50 backdrop-blur-xl p-6 rounded-2xl border transition-all ${
-                    bet.status === "won"
-                      ? "border-green-500/40 hover:border-green-500/60"
-                      : "border-red-500/40 hover:border-red-500/60"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{getStatusIcon(bet.status)}</span>
-                        <h3 className="text-2xl font-bold text-white">{bet.awayTeam} @ {bet.homeTeam}</h3>
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                          bet.status === "won" ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
-                        }`}>
-                          {bet.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="px-3 py-1 bg-slate-700 text-white rounded-full font-bold">
-                          {bet.betType}
-                        </span>
-                        <span className="text-gray-400">on {bet.teamName}</span>
-                        <span className="text-gray-400">
-                          {bet.odds > 0 ? '+' : ''}{bet.odds}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-gray-400 text-sm mb-1">
-                        {bet.status === "won" ? "Won" : "Lost"}
-                      </p>
-                      <p className={`text-3xl font-black ${
-                        bet.status === "won" ? "text-green-500" : "text-red-500"
-                      }`}>
-                        {bet.status === "won" ? '+' : '-'}${Math.abs(bet.status === "won" ? bet.profit : bet.amount).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-700">
-                    <div>
-                      <p className="text-gray-400 text-sm mb-1">Wagered</p>
-                      <p className="text-xl font-bold text-white">${bet.amount.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-sm mb-1">
-                        {bet.status === "won" ? "Won" : "Lost"}
-                      </p>
-                      <p className={`text-xl font-bold ${bet.status === "won" ? "text-green-500" : "text-red-500"}`}>
-                        ${bet.status === "won" ? bet.profit.toFixed(2) : bet.amount.toFixed(2)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-sm mb-1">Payout</p>
-                      <p className="text-xl font-bold text-white">
-                        ${bet.status === "won" ? bet.potentialPayout.toFixed(2) : "0.00"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
-                    <p className="text-gray-400 text-sm">
-                      Placed: {new Date(bet.placedAt).toLocaleDateString()}
-                    </p>
-                    {bet.settledAt && (
-                      <p className="text-gray-400 text-sm">
-                        Settled: {new Date(bet.settledAt).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))
+              pendingBets.map((bet) => <BetCard key={bet._id} bet={bet} />)
             )}
           </div>
         )}
-        </div>
+
+        {!loading && activeTab === 'history' && (
+          <div className="space-y-4">
+            {betHistory.length === 0 ? (
+              <div className="text-center py-24">
+                <p className="text-lg font-semibold mb-2" style={{ color: '#1A1814' }}>No bet history yet</p>
+                <p className="text-sm" style={{ color: '#8A8272' }}>Your completed bets will appear here.</p>
+              </div>
+            ) : (
+              betHistory.map((bet) => <BetCard key={bet._id} bet={bet} />)
+            )}
+          </div>
+        )}
+      </div>
     </div>
-);
+  );
 }
