@@ -45,6 +45,19 @@ class Bet {
             .toArray();
     }
 
+    static async findAllPending(limit = 100) {
+        const db = getDB();
+        return await db.collection("bets").aggregate([
+            { $match: { status: "pending" } },
+            { $sort: { placedAt: -1 } },
+            { $limit: limit },
+            { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+            { $addFields: { userEmail: "$user.email" } },
+            { $project: { user: 0 } }
+        ]).toArray();
+    }
+
     static async findById(betId) {
         const db = getDB();
         return await db.collection("bets").findOne({ _id: new ObjectId(betId)});

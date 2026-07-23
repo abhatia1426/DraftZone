@@ -89,4 +89,40 @@ router.post('/suggest', async (req, res) => {
   }
 });
 
+router.post('/recap', async (req, res) => {
+  const { rosters, scores } = req.body;
+
+  const summarizeRoster = (roster) =>
+    ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLEX', 'DST', 'K']
+      .map((k) => roster?.[k]?.full_name)
+      .filter(Boolean)
+      .join(', ') || 'Empty roster';
+
+  try {
+    const prompt = `
+      You are a fantasy football draft analyst. Grade the Human team's draft on a letter scale (A+ through F) based on roster construction, positional balance, and total projected points versus their opponent.
+
+      Human roster: ${summarizeRoster(rosters?.user1)}
+      Human projected points: ${scores?.score1 ?? '?'}
+      CPU roster: ${summarizeRoster(rosters?.user2)}
+      CPU projected points: ${scores?.score2 ?? '?'}
+
+      Output JSON ONLY: { "grade": "B+", "summary": "2-3 sentence summary of the human's draft strategy, strengths, and weaknesses." }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+
+    try {
+      res.json(JSON.parse(text));
+    } catch {
+      res.json({ grade: '—', summary: text });
+    }
+  } catch (error) {
+    console.error('AI Recap Error:', error.message);
+    res.status(500).json({ grade: '—', summary: "Scout couldn't grade this draft right now." });
+  }
+});
+
 module.exports = router;

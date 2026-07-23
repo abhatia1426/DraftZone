@@ -19,6 +19,7 @@ const STATUS_STYLE = {
 
 export default function MyBets({ user, onLogout }) {
   const userId = user?._id;
+  const navLinks = user?.role === 'admin' ? [...NAV_LINKS, { label: 'Admin', to: '/admin' }] : NAV_LINKS;
   const [activeTab, setActiveTab] = useState('pending');
   const [pendingBets, setPendingBets] = useState([]);
   const [betHistory, setBetHistory] = useState([]);
@@ -133,7 +134,7 @@ export default function MyBets({ user, onLogout }) {
             </span>
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
-            {NAV_LINKS.map((item) => (
+            {navLinks.map((item) => (
               <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Bets' ? '#1A1814' : '#6B6456' }}>
                 {item.label}
               </Link>

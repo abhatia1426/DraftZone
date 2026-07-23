@@ -28,6 +28,14 @@ class User {
     });
   }
 
+  static async findAll() {
+    const db = getDB();
+    return await db.collection("users")
+      .find({}, { projection: { password: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
+  }
+
   static async updateBalance(userId, newBalance) {
     const db = getDB();
     return await db.collection("users").updateOne(

@@ -80,6 +80,17 @@ router.get("/user/:userId", async (req, res) => {
     }
 });
 
+// GET - Get all pending bets across every user (admin)
+router.get("/pending", async (req, res) => {
+    try {
+        const bets = await Bet.findAllPending();
+        res.json(bets);
+    } catch (error) {
+        console.error("Error fetching all pending bets: ", error);
+        res.status(500).json({ error: "Failed to fetch pending bets" });
+    }
+});
+
 //Get - Get users pending bets
 router.get("/pending/:userId", async (req, res) => {
     try{

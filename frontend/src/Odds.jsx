@@ -65,6 +65,7 @@ export default function Odds({ user, onLogout }) {
   const navigate = useNavigate();
   const notify = useNotify();
   const userId = user?._id;
+  const navLinks = user?.role === 'admin' ? [...NAV_LINKS, { label: 'Admin', to: '/admin' }] : NAV_LINKS;
 
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,7 +191,7 @@ export default function Odds({ user, onLogout }) {
             </span>
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
-            {NAV_LINKS.map((item) => (
+            {navLinks.map((item) => (
               <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Odds' ? '#1A1814' : '#6B6456' }}>
                 {item.label}
               </Link>

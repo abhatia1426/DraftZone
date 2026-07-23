@@ -19,6 +19,7 @@ const CATEGORIES = ['All', 'QB', 'RB', 'WR', 'TE', 'DEF', 'K'];
 const PAGE_SIZE = 60;
 
 export default function PlayerSearchPage({ user, onLogout }) {
+  const navLinks = user?.role === 'admin' ? [...NAV_LINKS, { label: 'Admin', to: '/admin' }] : NAV_LINKS;
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -87,7 +88,7 @@ export default function PlayerSearchPage({ user, onLogout }) {
             </span>
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
-            {NAV_LINKS.map((item) => (
+            {navLinks.map((item) => (
               <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: '#6B6456' }}>
                 {item.label}
               </Link>

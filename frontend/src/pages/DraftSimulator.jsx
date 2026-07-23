@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 // Theme: Warm editorial light — cream surfaces, charcoal type, grass-green accents
@@ -323,7 +325,79 @@ const PlayerModal = memo(({ player, onClose, onDraft }) => {
 
 // ─── AI Chat Panel ────────────────────────────────────────────────────────────
 
-const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
+const findMentionedPlayer = (text, pool) => {
+  if (!text || !pool?.length) return null;
+  const lower = text.toLowerCase();
+  let best = null;
+  for (const p of pool) {
+    if (lower.includes(p.full_name.toLowerCase())) {
+      if (!best || p.full_name.length > best.full_name.length) best = p;
+    }
+  }
+  return best;
+};
+
+const ScoutAvatar = memo(({ thinking }) => (
+  <div style={{ position:'relative', width:24, height:24, flexShrink:0 }}>
+    {thinking && (
+      <motion.div
+        animate={{ rotate:360 }}
+        transition={{ repeat:Infinity, duration:1.4, ease:'linear' }}
+        style={{
+          position:'absolute', inset:-4, borderRadius:'50%',
+          background:'conic-gradient(from 0deg, #3FCB6E, #7EC8C8, #FFD166, #3FCB6E)',
+          WebkitMask:'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+          mask:'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+        }}
+      />
+    )}
+    <motion.div
+      animate={{ scale:[1, 1.12, 1] }}
+      transition={{ repeat:Infinity, duration:2.2, ease:'easeInOut' }}
+      style={{
+        position:'absolute', inset:0, borderRadius:'50%',
+        background:'linear-gradient(135deg, var(--accent-mid), var(--accent))',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        boxShadow:'0 2px 8px rgba(45,106,45,0.35)',
+      }}
+    >
+      <Sparkles size={12} color="var(--text-inverse)" />
+    </motion.div>
+  </div>
+));
+
+const SuggestionCard = memo(({ player, isMyTurn, onDraft }) => (
+  <motion.div
+    initial={{ opacity:0, height:0, scale:0.95 }}
+    animate={{ opacity:1, height:'auto', scale:1 }}
+    transition={{ type:'spring', stiffness:400, damping:28 }}
+    style={{
+      marginTop:6, marginLeft:28, display:'flex', alignItems:'center', gap:8,
+      padding:'9px 11px', borderRadius:12, maxWidth:'85%',
+      background:'linear-gradient(135deg, rgba(255,255,255,0.55), rgba(235,245,235,0.4))',
+      backdropFilter:'blur(20px) saturate(1.4)', WebkitBackdropFilter:'blur(20px) saturate(1.4)',
+      border:'1px solid rgba(255,255,255,0.5)',
+      boxShadow:'0 8px 24px rgba(45,106,45,0.14), inset 0 1px 0 rgba(255,255,255,0.7)',
+    }}
+  >
+    <img src={getPlayerImage(player)} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', background:'var(--bg-inset)', flexShrink:0, border:'1px solid rgba(255,255,255,0.6)' }}
+      onError={e => e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
+    <span style={{ flex:1, fontSize:11, fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+      {player.full_name}
+    </span>
+    <motion.button
+      whileTap={{ scale:0.92 }}
+      whileHover={isMyTurn ? { scale:1.04 } : {}}
+      onClick={() => isMyTurn && onDraft(player)}
+      disabled={!isMyTurn}
+      style={{ ...(isMyTurn ? S.btnPrimary : S.btnDisabled), padding:'5px 11px', fontSize:9 }}
+    >
+      {isMyTurn ? 'Draft' : 'Not your turn'}
+    </motion.button>
+  </motion.div>
+));
+
+const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn }) => {
   const [messages, setMessages] = useState([
     { role:'assistant', text:"Ready to scout. Ask me about any player, your roster needs, or get a recommendation for this round." }
   ]);
@@ -331,7 +405,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, loading]);
 
   const send = useCallback(async (text) => {
     if (!text.trim() || loading) return;
@@ -349,7 +423,9 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
       const res = await axios.post('http://localhost:8080/api/ai/chat', {
         message:msg, context:{ round, turn, roster:rosterSummary, bench, topAvailable:topAvail }
       });
-      setMessages(p => [...p, { role:'assistant', text:res.data.reply || 'No response.' }]);
+      const reply = res.data.reply || 'No response.';
+      const suggestedPlayer = findMentionedPlayer(reply, allPlayers);
+      setMessages(p => [...p, { role:'assistant', text:reply, suggestedPlayer }]);
     } catch {
       setMessages(p => [...p, { role:'assistant', text:'Scout offline — check your connection.' }]);
     }
@@ -359,53 +435,125 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn }) => {
   const quickPrompts = ['Who should I pick?', 'What position do I need?', 'Best value sleeper?'];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:8 }}>
-        {messages.map((m,i) => (
-          <div key={i} className="dz-fade" style={{ display:'flex', justifyContent:m.role==='user'?'flex-end':'flex-start' }}>
-            <div style={{
-              maxWidth:'85%', padding:'9px 12px', fontSize:12, lineHeight:1.6,
-              borderRadius: m.role==='user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
-              background: m.role==='user' ? 'var(--accent)' : 'var(--bg-inset)',
-              color: m.role==='user' ? 'var(--text-inverse)' : 'var(--text-primary)',
-              border: m.role==='user' ? 'none' : '1px solid var(--border-subtle)',
-            }}>{m.text}</div>
-          </div>
-        ))}
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', position:'relative', overflow:'hidden', background:'#EEF3E8' }}>
+      <motion.div
+        animate={{ x:[0,30,-10,0], y:[0,-20,10,0] }}
+        transition={{ repeat:Infinity, duration:14, ease:'easeInOut' }}
+        style={{ position:'absolute', top:-60, right:-60, width:220, height:220, borderRadius:'50%', background:'#3FCB6E', opacity:0.35, filter:'blur(60px)', pointerEvents:'none' }}
+      />
+      <motion.div
+        animate={{ x:[0,-25,15,0], y:[0,20,-15,0] }}
+        transition={{ repeat:Infinity, duration:16, ease:'easeInOut' }}
+        style={{ position:'absolute', top:180, left:-70, width:200, height:200, borderRadius:'50%', background:'#4FA8D8', opacity:0.3, filter:'blur(60px)', pointerEvents:'none' }}
+      />
+      <motion.div
+        animate={{ x:[0,20,-20,0], y:[0,-15,20,0] }}
+        transition={{ repeat:Infinity, duration:12, ease:'easeInOut' }}
+        style={{ position:'absolute', bottom:-50, right:-30, width:180, height:180, borderRadius:'50%', background:'#FFD166', opacity:0.25, filter:'blur(60px)', pointerEvents:'none' }}
+      />
+
+      <div style={{
+        flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'10px 12px',
+        borderBottom:'1px solid rgba(255,255,255,0.5)', background:'rgba(255,255,255,0.35)',
+        backdropFilter:'blur(24px) saturate(1.6)', WebkitBackdropFilter:'blur(24px) saturate(1.6)',
+        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.6)', position:'relative', zIndex:1,
+      }}>
+        <ScoutAvatar thinking={loading} />
+        <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', letterSpacing:'0.02em' }}>AI Scout</span>
+        <span style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:5, fontSize:9, color:'var(--text-muted)', fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+          <span className="dz-blink" style={{ width:5, height:5, borderRadius:'50%', background:'var(--accent-mid)' }} />
+          Live
+        </span>
+      </div>
+
+      <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:10, position:'relative', zIndex:1 }}>
+        <AnimatePresence initial={false}>
+          {messages.map((m,i) => {
+            const stillAvailable = m.suggestedPlayer && allPlayers.some(p => p.player_id === m.suggestedPlayer.player_id);
+            return (
+              <motion.div
+                key={i}
+                layout
+                initial={{ opacity:0, y:10, scale:0.97 }}
+                animate={{ opacity:1, y:0, scale:1 }}
+                transition={{ type:'spring', stiffness:500, damping:32 }}
+                style={{ display:'flex', flexDirection:'column', alignItems:m.role==='user'?'flex-end':'flex-start' }}
+              >
+                <div style={{ display:'flex', gap:6, alignItems:'flex-end', maxWidth:'88%' }}>
+                  {m.role==='assistant' && <ScoutAvatar thinking={false} />}
+                  <div style={{
+                    padding:'9px 12px', fontSize:12, lineHeight:1.6,
+                    borderRadius: m.role==='user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+                    background: m.role==='user' ? 'linear-gradient(135deg, var(--accent-mid), var(--accent))' : 'rgba(255,255,255,0.45)',
+                    backdropFilter: m.role==='user' ? 'none' : 'blur(20px) saturate(1.5)',
+                    WebkitBackdropFilter: m.role==='user' ? 'none' : 'blur(20px) saturate(1.5)',
+                    color: m.role==='user' ? 'var(--text-inverse)' : 'var(--text-primary)',
+                    border: m.role==='user' ? 'none' : '1px solid rgba(255,255,255,0.55)',
+                    boxShadow: m.role==='user' ? '0 4px 14px rgba(45,106,45,0.3)' : '0 6px 18px rgba(30,25,15,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
+                  }}>{m.text}</div>
+                </div>
+                {stillAvailable && (
+                  <SuggestionCard player={m.suggestedPlayer} isMyTurn={isMyTurn} onDraft={onDraft} />
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
         {loading && (
-          <div style={{ display:'flex', justifyContent:'flex-start' }}>
-            <div style={{ padding:'10px 14px', background:'var(--bg-inset)', borderRadius:'12px 12px 12px 3px', border:'1px solid var(--border-subtle)' }}>
+          <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} style={{ display:'flex', gap:6, alignItems:'center' }}>
+            <ScoutAvatar thinking />
+            <div style={{
+              padding:'9px 14px', background:'rgba(255,255,255,0.45)', backdropFilter:'blur(20px) saturate(1.5)', WebkitBackdropFilter:'blur(20px) saturate(1.5)',
+              borderRadius:'12px 12px 12px 3px', border:'1px solid rgba(255,255,255,0.55)',
+              boxShadow:'0 6px 18px rgba(30,25,15,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
+              display:'flex', alignItems:'center', gap:6,
+            }}>
               <div className="dz-dot-pulse"><span/><span/><span/></div>
+              <span style={{ fontSize:10, color:'var(--text-secondary)' }}>Scout is thinking…</span>
             </div>
-          </div>
+          </motion.div>
         )}
         <div ref={bottomRef} />
       </div>
 
       {messages.length <= 1 && (
-        <div style={{ padding:'0 12px 8px', display:'flex', flexDirection:'column', gap:4 }}>
-          {quickPrompts.map(q => (
-            <button key={q} onClick={() => send(q)} style={{
-              padding:'8px 12px', background:'var(--bg-inset)', border:'1px solid var(--border-subtle)',
-              borderRadius:'var(--radius-sm)', fontSize:11, color:'var(--text-secondary)',
-              fontFamily:'var(--font-body)', cursor:'pointer', textAlign:'left',
-            }}>{q} →</button>
+        <div style={{ padding:'0 12px 8px', display:'flex', flexDirection:'column', gap:4, position:'relative', zIndex:1 }}>
+          {quickPrompts.map((q, qi) => (
+            <motion.button
+              key={q}
+              initial={{ opacity:0, x:-8 }} animate={{ opacity:1, x:0 }} transition={{ delay:qi*0.08 }}
+              whileTap={{ scale:0.97 }} whileHover={{ scale:1.02 }}
+              onClick={() => send(q)}
+              style={{
+                padding:'9px 12px', background:'rgba(255,255,255,0.4)', backdropFilter:'blur(16px) saturate(1.4)', WebkitBackdropFilter:'blur(16px) saturate(1.4)',
+                border:'1px solid rgba(255,255,255,0.55)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.6)',
+                borderRadius:'var(--radius-sm)', fontSize:11, color:'var(--text-secondary)',
+                fontFamily:'var(--font-body)', cursor:'pointer', textAlign:'left',
+              }}>{q} →</motion.button>
           ))}
         </div>
       )}
 
-      <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border-subtle)', display:'flex', gap:8 }}>
+      <div style={{
+        padding:'10px 12px', borderTop:'1px solid rgba(255,255,255,0.5)', display:'flex', gap:8, position:'relative', zIndex:1,
+        background:'rgba(255,255,255,0.35)', backdropFilter:'blur(24px) saturate(1.6)', WebkitBackdropFilter:'blur(24px) saturate(1.6)',
+        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.6)',
+      }}>
         <input value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e => e.key==='Enter' && send(input)}
           placeholder="Ask about a player or pick..."
-          style={{ ...S.input, flex:1 }}
+          style={{
+            ...S.input, flex:1, background:'rgba(255,255,255,0.55)',
+            backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
+            border:'1px solid rgba(255,255,255,0.6)',
+          }}
           onFocus={e=>e.target.style.borderColor='var(--accent)'}
-          onBlur={e=>e.target.style.borderColor='var(--border-default)'}
+          onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.6)'}
         />
-        <button onClick={() => send(input)} disabled={loading||!input.trim()}
+        <motion.button whileTap={{ scale:0.94 }} onClick={() => send(input)} disabled={loading||!input.trim()}
           style={loading||!input.trim() ? S.btnDisabled : S.btnPrimary}>
           Ask
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -453,6 +601,17 @@ const DraftRecap = ({ rosters, onRestart }) => {
   const winner = parseFloat(s1) >= parseFloat(s2) ? 'user1' : 'user2';
   const slots = [['QB','QB'],['RB','RB1'],['RB','RB2'],['WR','WR1'],['WR','WR2'],['TE','TE'],['FLEX','FLEX'],['DEF','DST'],['K','K']];
 
+  const [recap, setRecap] = useState(null);
+  const [recapLoading, setRecapLoading] = useState(true);
+
+  useEffect(() => {
+    axios.post('http://localhost:8080/api/ai/recap', { rosters, scores: { score1: s1, score2: s2 } })
+      .then(res => setRecap(res.data))
+      .catch(() => setRecap({ grade: '—', summary: "Scout couldn't grade this draft right now." }))
+      .finally(() => setRecapLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg-base)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'var(--font-body)' }}>
       <div style={{ width:'100%', maxWidth:600 }}>
@@ -472,6 +631,32 @@ const DraftRecap = ({ rosters, onRestart }) => {
             <div style={{ fontFamily:'var(--font-mono)', fontSize:48, fontWeight:600, color:winner==='user2'?'var(--cpu-accent)':'var(--text-muted)' }}>{s2}</div>
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.15, duration:0.4 }}
+          style={{
+            display:'flex', alignItems:'flex-start', gap:12, marginBottom:16, padding:'16px 20px', borderRadius:'var(--radius-xl)',
+            background:'rgba(253,250,245,0.6)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+            border:'1px solid var(--border-default)', boxShadow:'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ width:22, height:22, borderRadius:'50%', flexShrink:0, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', marginTop:2 }}>
+            <Sparkles size={12} color="var(--text-inverse)" />
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+              <span style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Scout's grade</span>
+              {!recapLoading && recap && (
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:16, fontWeight:700, color:'var(--accent)' }}>{recap.grade}</span>
+              )}
+            </div>
+            {recapLoading ? (
+              <div className="dz-dot-pulse"><span/><span/><span/></div>
+            ) : (
+              <p style={{ fontSize:12, lineHeight:1.6, color:'var(--text-secondary)' }}>{recap?.summary}</p>
+            )}
+          </div>
+        </motion.div>
 
         <div style={{ background:'var(--bg-raised)', borderRadius:'var(--radius-xl)', border:'1px solid var(--border-default)', overflow:'hidden', boxShadow:'var(--shadow-sm)', marginBottom:16 }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 48px 1fr', padding:'8px 20px', background:'var(--bg-inset)', borderBottom:'1px solid var(--border-subtle)' }}>
@@ -522,7 +707,7 @@ const DraftRecap = ({ rosters, onRestart }) => {
 const CATEGORIES   = ['ALL','QB','RB','WR','TE','DEF','K'];
 const SIDEBAR_TABS = ['AI Scout','My Roster','CPU Roster'];
 
-const DraftSimulator = ({ onLogout }) => {
+const DraftSimulator = ({ user, onLogout }) => {
   const [draftId, setDraftId]         = useState(null);
   const [allPlayers, setAllPlayers]   = useState([]);
   const [displayPlayers, setDisplay]  = useState([]);
@@ -576,7 +761,7 @@ const DraftSimulator = ({ onLogout }) => {
     try { await axios.put(`http://localhost:8080/api/drafts/${draftId}/finish`, { winner, score1:parseFloat(s1), score2:parseFloat(s2) }); } catch {}
   };
 
-  const draftPlayer = useCallback(async (player) => {
+  const draftPlayer = useCallback(async (player, reason) => {
     if (!player) return false;
     const cu = `user${turn}`;
     const cr = { ...rosters[cu], BENCH:[...rosters[cu].BENCH] };
@@ -598,7 +783,7 @@ const DraftSimulator = ({ onLogout }) => {
     if (slot==='BENCH') cr.BENCH.push(player); else cr[slot]=player;
     const ur = { ...rosters, [cu]:cr };
     setRosters(ur);
-    setPickHistory(h => [...h, { pick:h.length+1, round, turn, player, slot }]);
+    setPickHistory(h => [...h, { pick:h.length+1, round, turn, player, slot, reason }]);
     if (draftId) axios.post(`http://localhost:8080/api/drafts/${draftId}/pick`, { player, user:cu, round, turn, slot }).catch(()=>{});
 
     const p1c=countPlayers(ur.user1), p2c=countPlayers(ur.user2);
@@ -628,12 +813,14 @@ const DraftSimulator = ({ onLogout }) => {
         if(!pool.length) pool = allPlayers;
       }
       let pick = null;
+      let reason = null;
       try {
         const res = await axios.post('http://localhost:8080/api/ai/suggest', { roster:rosters.user2, availablePlayers:pool.slice(0,15), round }, { timeout:8000 });
         if (res.data.player) pick = pool.find(p=>p.full_name.toLowerCase().includes(res.data.player.toLowerCase()));
+        reason = res.data.reason || null;
       } catch {}
       if (!pick) pick = pool.find(p=>['QB','RB','WR','TE'].includes(p.position)) || pool[0];
-      if (pick) draftPlayer(pick);
+      if (pick) draftPlayer(pick, reason);
       setAiLoading(false);
     };
     const t = setTimeout(go, 700);
@@ -716,7 +903,7 @@ const DraftSimulator = ({ onLogout }) => {
           </div>
 
           <nav style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
-            {[['Search','/player-search'],['Odds','/odds'],['Bets','/my-bets']].map(([label,to]) => (
+            {[['Search','/player-search'],['Odds','/odds'],['Bets','/my-bets'],...(user?.role==='admin'?[['Admin','/admin']]:[])].map(([label,to]) => (
               <Link key={to} to={to} style={{
                 fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
                 color:'var(--text-secondary)', textDecoration:'none', fontFamily:'var(--font-body)',
@@ -802,20 +989,27 @@ const DraftSimulator = ({ onLogout }) => {
           <div style={{ width:300, flexShrink:0, display:'flex', flexDirection:'column', background:'var(--bg-surface)' }}>
 
             {/* Tabs */}
-            <div style={{ display:'flex', borderBottom:'1px solid var(--border-default)', flexShrink:0, background:'var(--bg-raised)' }}>
+            <div style={{ display:'flex', gap:3, padding:4, flexShrink:0, background:'var(--bg-inset)', borderBottom:'1px solid var(--border-default)' }}>
               {SIDEBAR_TABS.map((tab,i)=>(
                 <button key={tab} onClick={()=>setSidebarTab(i)} style={{
-                  flex:1, padding:'11px 4px',
+                  position:'relative', flex:1, padding:'8px 4px',
                   fontSize:11, fontWeight:600, letterSpacing:'0.03em',
-                  fontFamily:'var(--font-body)', border:'none', background:'transparent', cursor:'pointer',
-                  color: sidebarTab===i ? 'var(--accent-text)' : 'var(--text-muted)',
-                  borderBottom: sidebarTab===i ? '2px solid var(--accent)' : '2px solid transparent',
-                }}>{tab}</button>
+                  fontFamily:'var(--font-body)', border:'none', cursor:'pointer', background:'transparent',
+                  color: sidebarTab===i ? 'var(--text-inverse)' : 'var(--text-muted)',
+                  transition:'color 0.2s',
+                }}>
+                  {sidebarTab===i && (
+                    <motion.div layoutId="tab-pill" transition={{ type:'spring', stiffness:500, damping:35 }}
+                      style={{ position:'absolute', inset:0, background:'var(--accent)', borderRadius:'var(--radius-sm)', zIndex:0 }}
+                    />
+                  )}
+                  <span style={{ position:'relative', zIndex:1 }}>{tab}</span>
+                </button>
               ))}
             </div>
 
             <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-              {sidebarTab===0 && <AIChatPanel roster={rosters.user1} allPlayers={allPlayers} round={round} turn={turn} />}
+              {sidebarTab===0 && <AIChatPanel roster={rosters.user1} allPlayers={allPlayers} round={round} turn={turn} onDraft={draftPlayer} isMyTurn={isMyTurn} />}
               {sidebarTab===1 && (
                 <div className="dz-scrollbar" style={{ flex:1, overflowY:'auto', padding:12 }}>
                   <RosterPanel roster={rosters.user1} label="Team Human" isActive={turn===1} />
@@ -834,13 +1028,20 @@ const DraftSimulator = ({ onLogout }) => {
                 <div style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'var(--font-mono)', marginBottom:8 }}>Recent picks</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
                   {[...pickHistory].reverse().slice(0,3).map((h,i)=>(
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:8, fontSize:11 }}>
-                      <span style={{ fontFamily:'var(--font-mono)', color:'var(--text-muted)', width:20, textAlign:'right', flexShrink:0 }}>{h.pick}.</span>
-                      <span style={{ fontWeight:600, color:h.turn===1?'var(--accent-text)':'var(--cpu-text)', flexShrink:0, fontFamily:'var(--font-mono)', fontSize:10 }}>
-                        {h.turn===1?'HUM':'CPU'}
-                      </span>
-                      <span style={{ color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{h.player.full_name}</span>
-                      <PosBadge pos={h.player.position} />
+                    <div key={i}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:11 }}>
+                        <span style={{ fontFamily:'var(--font-mono)', color:'var(--text-muted)', width:20, textAlign:'right', flexShrink:0 }}>{h.pick}.</span>
+                        <span style={{ fontWeight:600, color:h.turn===1?'var(--accent-text)':'var(--cpu-text)', flexShrink:0, fontFamily:'var(--font-mono)', fontSize:10 }}>
+                          {h.turn===1?'HUM':'CPU'}
+                        </span>
+                        <span style={{ color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{h.player.full_name}</span>
+                        <PosBadge pos={h.player.position} />
+                      </div>
+                      {h.reason && (
+                        <div style={{ fontSize:10, color:'var(--text-muted)', fontStyle:'italic', paddingLeft:28, marginTop:2, lineHeight:1.4 }}>
+                          "{h.reason}"
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

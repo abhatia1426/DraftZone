@@ -79,6 +79,8 @@ export default function Home({ user, onLogout }) {
     { value: liveStats.completed !== null ? `${liveStats.completed}` : '—', label: 'Completed games' },
   ];
 
+  const navLinks = user?.role === 'admin' ? [...NAV_LINKS, { label: 'Admin', to: '/admin' }] : NAV_LINKS;
+
   return (
     <div className="w-full" style={{ background: '#F5F2EC', fontFamily: "'Inter', sans-serif" }}>
       <style>{`
@@ -98,7 +100,7 @@ export default function Home({ user, onLogout }) {
           </Link>
 
           <div className="hidden md:flex gap-8 text-sm font-medium" style={{ color: '#6B6456' }}>
-            {NAV_LINKS.map((item) => (
+            {navLinks.map((item) => (
               <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: '#6B6456' }}>
                 {item.label}
               </Link>
