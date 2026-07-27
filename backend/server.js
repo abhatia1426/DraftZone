@@ -51,11 +51,10 @@ const server = app.listen(PORT, () => {
   console.log("🏈 Odds endpoint: http://localhost:" + PORT + "/api/odds"); // More visible log
 });
 
-// Safety: Log if it crashes
+// Safety: log unhandled rejections, but keep serving.
+// This previously closed the server and exited, so a single failed database
+// query (e.g. Mongo unreachable) killed the entire API and made the player and
+// odds endpoints unreachable even though they never touch the database.
 process.on('unhandledRejection', (err) => {
-  console.log('UNHANDLED REJECTION! Shutting down...');
-  console.log(err.name, err.message);
-  server.close(() => {
-    process.exit(1);
-  });
+  console.error('UNHANDLED REJECTION (server still running):', err?.name, err?.message);
 });

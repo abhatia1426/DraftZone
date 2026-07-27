@@ -1183,16 +1183,31 @@ const DraftSimulator = ({ user, onLogout }) => {
   }, []);
 
   const loadDraftData = useCallback(async () => {
+    // The player list and the draft-session record are independent concerns and
+    // must not share a catch: /api/drafts is database-backed and fails whenever
+    // Mongo is unreachable, whereas /api/players/fetch is served from an
+    // external API and keeps working. Bundling them meant a failed session POST
+    // raised "Could not load players" on top of a fully loaded 1000-player
+    // board. Only a genuine players-fetch failure may set loadError.
+    setLoading(true);
+    setLoadError(false);
     try {
-      setLoading(true);
-      setLoadError(false);
       const pr = await axios.get('http://localhost:8080/api/players/fetch', { timeout: 12000 });
-      setAllPlayers(pr.data); setDisplay(pr.data); setLoading(false);
+      setAllPlayers(pr.data); setDisplay(pr.data);
+    } catch {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+
+    // Losing this only costs server-side pick persistence; the board stays
+    // fully usable, so it must not surface as a player-loading failure.
+    try {
       const dr = await axios.post('http://localhost:8080/api/drafts', { gameMode });
       setDraftId(dr.data.draftId);
     } catch {
-      setLoading(false);
-      setLoadError(true);
+      setDraftId(null);
     }
   }, [gameMode]);
 

@@ -23,8 +23,16 @@ async function connectDB() {
     console.log("✅ MongoDB Connected (DraftZone)");
     return db;
   } catch (err) {
+    // Do NOT kill the process here. connectDB() is called unawaited at startup,
+    // so exiting on a Mongo failure took down the whole API several seconds
+    // after it began serving — including /api/players/fetch and /api/odds,
+    // which are served from external APIs and need no database at all.
+    // Leave `db` unset: getDB() still throws for routes that genuinely need
+    // Mongo, and those routes fail individually instead of taking the server
+    // down with them.
     console.error("❌ MongoDB Connection Error:", err.message);
-    process.exit(1);
+    console.error("   Database routes will fail; player and odds endpoints are unaffected.");
+    return null;
   }
 }
 
