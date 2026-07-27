@@ -64,7 +64,7 @@ export default function App() {
             <Route path="/login" element={<Login user={user} onLogin={handleLogin} />} />
 
             {/* Authors page - Public route */}
-            <Route path="/authors" element={<Authors />} />
+            <Route path="/authors" element={<Authors user={user} onLogout={handleLogout} />} />
 
             {/* Public Routes */}
             <Route path="/odds" element={<Odds user={user} onLogout={handleLogout} />} />

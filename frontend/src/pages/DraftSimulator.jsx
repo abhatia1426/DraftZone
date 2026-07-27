@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 // project's no-unused-vars config (no eslint-plugin-react) doesn't track.
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
-import { Sparkles, Check, Flame, Target, Plus, Info, Users, Gem, ChevronRight } from 'lucide-react';
+import { Sparkles, Check, Flame, Target, Plus, Info, Users, Gem, ChevronRight, ArrowLeft } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ThemeToggle from '../components/ThemeToggle';
 import DynamicIsland from '../components/DynamicIsland';
@@ -187,28 +187,28 @@ const getPlaystyleSummary = (player) => {
 
 const S = {
   btnPrimary: {
-    display:'inline-flex', alignItems:'center', gap:6,
-    padding:'7px 14px', background:'var(--accent)', color:'var(--text-inverse)',
+    display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
+    minHeight:44, padding:'0 16px', background:'var(--accent)', color:'var(--text-inverse)',
     border:'none', borderRadius:'var(--radius-sm)',
-    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    fontSize:12, fontWeight:600, fontFamily:'var(--font-body)',
     letterSpacing:'0.04em', cursor:'pointer', whiteSpace:'nowrap',
   },
   btnGhost: {
-    display:'inline-flex', alignItems:'center',
-    padding:'6px 10px', background:'transparent', color:'var(--text-secondary)',
+    display:'inline-flex', alignItems:'center', justifyContent:'center',
+    minHeight:44, padding:'0 12px', background:'transparent', color:'var(--text-secondary)',
     border:'1px solid var(--border-default)', borderRadius:'var(--radius-sm)',
-    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    fontSize:12, fontWeight:600, fontFamily:'var(--font-body)',
     letterSpacing:'0.04em', cursor:'pointer',
   },
   btnDisabled: {
-    display:'inline-flex', alignItems:'center',
-    padding:'7px 14px', background:'var(--bg-inset)', color:'var(--text-muted)',
+    display:'inline-flex', alignItems:'center', justifyContent:'center',
+    minHeight:44, padding:'0 16px', background:'var(--bg-inset)', color:'var(--text-muted)',
     border:'1px solid var(--border-subtle)', borderRadius:'var(--radius-sm)',
-    fontSize:11, fontWeight:600, fontFamily:'var(--font-body)',
+    fontSize:12, fontWeight:600, fontFamily:'var(--font-body)',
     letterSpacing:'0.04em', cursor:'not-allowed',
   },
   input: {
-    padding:'8px 12px', background:'var(--bg-inset)',
+    minHeight:44, padding:'0 12px', background:'var(--bg-inset)',
     border:'1px solid var(--border-default)', borderRadius:'var(--radius-sm)',
     fontSize:12, color:'var(--text-primary)', fontFamily:'var(--font-body)', outline:'none',
   },
@@ -222,7 +222,7 @@ const PosBadge = memo(({ pos }) => {
     <span style={{
       display:'inline-flex', alignItems:'center', gap:5,
       background: m.bg, color: m.color,
-      fontSize:10, fontWeight:700, fontFamily:'var(--font-mono)',
+      fontSize:12, fontWeight:700, fontFamily:'var(--font-mono)',
       padding:'3px 9px 3px 7px', borderRadius:'var(--radius-pill)',
       letterSpacing:'0.05em', border:`1px solid ${m.color}2a`, whiteSpace:'nowrap',
       boxShadow:`0 1px 2px ${m.color}1a, inset 0 1px 0 rgba(255,255,255,0.35)`,
@@ -245,7 +245,7 @@ const StatChip = memo((props) => {
       background:'rgba(var(--text-primary-rgb), 0.05)', border:'1px solid rgba(var(--text-primary-rgb), 0.08)',
     }}>
       <Icon size={11} style={{ color:tone, flexShrink:0 }} />
-      <span style={{ fontFamily:'var(--font-mono)', fontSize:11, fontWeight:600, color:'var(--text-primary)', whiteSpace:'nowrap' }}>{value}</span>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:12, fontWeight:600, color:'var(--text-primary)', whiteSpace:'nowrap' }}>{value}</span>
       {pct != null && (
         <span style={{ width:34, height:4, borderRadius:2, background:'rgba(var(--text-primary-rgb), 0.1)', overflow:'hidden', flexShrink:0 }}>
           <span style={{ display:'block', height:'100%', width:`${Math.max(4, Math.min(100, pct))}%`, background: tone, borderRadius:2 }} />
@@ -345,7 +345,7 @@ const PlayerRow = memo(({ player, rank, onDraft, onDraftStart, onSelect, isDisab
         }} />
 
         <div style={{ display:'flex', alignItems:'center', gap:14, padding:'13px 18px 13px 14px' }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)', width:16, flexShrink:0, textAlign:'center' }}>{rank}</span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-muted)', width:16, flexShrink:0, textAlign:'center' }}>{rank}</span>
 
           <div style={{ position:'relative', flexShrink:0 }}>
             <img
@@ -368,7 +368,7 @@ const PlayerRow = memo(({ player, rank, onDraft, onDraftStart, onSelect, isDisab
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
               <span style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', letterSpacing:'-0.01em' }}>{player.full_name}</span>
               <PosBadge pos={player.position} />
-              <span style={{ fontSize:11, color:'var(--text-muted)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{player.team || 'FA'}</span>
+              <span style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{player.team || 'FA'}</span>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
               <StatChip icon={Flame} value={pts ? pts.toFixed(1) : '—'} pct={pts ? ptsPct : null} tone={meta.color} />
@@ -388,7 +388,7 @@ const PlayerRow = memo(({ player, rank, onDraft, onDraftStart, onSelect, isDisab
                   style={{
                     display:'flex', alignItems:'center', gap:5, padding:'8px 13px',
                     borderRadius:'var(--radius-pill)', background:'var(--accent)', color:'var(--text-inverse)',
-                    fontSize:10, fontWeight:700, letterSpacing:'0.04em', whiteSpace:'nowrap',
+                    fontSize:12, fontWeight:700, letterSpacing:'0.04em', whiteSpace:'nowrap',
                   }}
                 >
                   <Check size={13} strokeWidth={3} /> DRAFTED
@@ -468,7 +468,7 @@ const RosterSlot = memo(({ label, player }) => (
     background: player ? 'var(--bg-raised)' : 'var(--bg-inset)',
     border:'1px solid var(--border-subtle)', marginBottom:4,
   }}>
-    <span style={{ fontFamily:'var(--font-mono)', fontSize:10, fontWeight:600, color:'var(--text-muted)', width:28, flexShrink:0, letterSpacing:'0.05em' }}>{label}</span>
+    <span style={{ fontFamily:'var(--font-mono)', fontSize:12, fontWeight:600, color:'var(--text-muted)', width:28, flexShrink:0, letterSpacing:'0.05em' }}>{label}</span>
     {player ? (
       <>
         <img src={getPlayerImage(player)} alt=""
@@ -477,9 +477,9 @@ const RosterSlot = memo(({ label, player }) => (
         />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:12, fontWeight:500, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{player.full_name}</div>
-          <div style={{ fontSize:10, color:'var(--text-muted)' }}>{player.position} · {player.team}</div>
+          <div style={{ fontSize:12, color:'var(--text-muted)' }}>{player.position} · {player.team}</div>
         </div>
-        <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-secondary)', flexShrink:0 }}>
+        <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-secondary)', flexShrink:0 }}>
           {player.stats?.pts_ppr?.toFixed(1) || '—'}
         </span>
       </>
@@ -500,7 +500,7 @@ const TrendTooltip = ({ active, payload, label }) => {
       padding:'8px 12px', borderRadius:10, background:'rgba(var(--bg-raised-rgb), 0.92)',
       backdropFilter:'blur(12px)', border:'1px solid var(--border-default)', boxShadow:'0 8px 20px rgba(0,0,0,0.35)',
     }}>
-      <div style={{ fontSize:10, color:'var(--text-muted)', fontFamily:'var(--font-mono)', marginBottom:2 }}>{label}</div>
+      <div style={{ fontSize:12, color:'var(--text-muted)', fontFamily:'var(--font-mono)', marginBottom:2 }}>{label}</div>
       <div style={{ fontSize:13, fontWeight:700, color:'var(--accent-bright)', fontFamily:'var(--font-mono)' }}>{payload[0].value.toFixed(1)} pts</div>
     </div>
   );
@@ -625,8 +625,8 @@ const PlayerModal = memo(({ player, onClose, onDraft }) => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
-                    <XAxis dataKey="season" tick={{ fontSize:10, fill:'var(--text-muted)' }} axisLine={{ stroke:'var(--border-default)' }} tickLine={false} />
-                    <YAxis tick={{ fontSize:10, fill:'var(--text-muted)' }} axisLine={false} tickLine={false} width={30} />
+                    <XAxis dataKey="season" tick={{ fontSize:12, fill:'var(--text-muted)' }} axisLine={{ stroke:'var(--border-default)' }} tickLine={false} />
+                    <YAxis tick={{ fontSize:12, fill:'var(--text-muted)' }} axisLine={false} tickLine={false} width={30} />
                     <Tooltip content={<TrendTooltip />} />
                     <Area type="monotone" dataKey="pts" stroke={tierColor} strokeWidth={2} fill="url(#ppr-trend-fill)" dot={{ r:3, fill:tierColor, strokeWidth:0 }} activeDot={{ r:5 }} isAnimationActive={!prefersReducedMotion} />
                   </AreaChart>
@@ -722,7 +722,7 @@ const SuggestionCard = memo(({ player, isMyTurn, onDraft }) => (
   >
     <img src={getPlayerImage(player)} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', background:'var(--bg-inset)', flexShrink:0, border:'1px solid rgba(255,255,255,0.6)' }}
       onError={e => e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
-    <span style={{ flex:1, fontSize:11, fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+    <span style={{ flex:1, fontSize:12, fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
       {player.full_name}
     </span>
     <motion.button
@@ -879,7 +879,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn, 
               display:'flex', alignItems:'center', gap:6,
             }}>
               <div className="dz-dot-pulse"><span/><span/><span/></div>
-              <span style={{ fontSize:10, color:'var(--text-secondary)' }}>Scout is thinking…</span>
+              <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Scout is thinking…</span>
             </div>
           </motion.div>
         )}
@@ -900,7 +900,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn, 
             <ScoutAvatar thinking={false} scale={2.2} />
             <div>
               <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', marginBottom:3 }}>Ready to scout</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.5, maxWidth:220 }}>Ask about any player, or tap a category for tailored advice.</div>
+              <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.5, maxWidth:220 }}>Ask about any player, or tap a category for tailored advice.</div>
             </div>
           </motion.div>
 
@@ -929,7 +929,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn, 
                   }}
                 >
                   <Icon size={15} style={{ color: active ? 'var(--accent)' : 'var(--text-secondary)' }} />
-                  <span style={{ fontSize:10, fontWeight:600, color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{cat.label}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>{cat.label}</span>
                 </motion.button>
               );
             })}
@@ -958,7 +958,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn, 
                         display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, textAlign:'left',
                         padding:'9px 12px', borderRadius:11, cursor:'pointer', fontFamily:'var(--font-body)',
                         background:'rgba(var(--bg-surface-rgb), 0.35)', border:'1px solid rgba(255,255,255,0.45)',
-                        fontSize:11, color:'var(--text-secondary)', fontWeight:500,
+                        fontSize:12, color:'var(--text-secondary)', fontWeight:500,
                       }}
                     >
                       <span>{p}</span>
@@ -983,6 +983,7 @@ const AIChatPanel = memo(({ roster, allPlayers, round, turn, onDraft, isMyTurn, 
         }}>
           <input value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e => e.key==='Enter' && send(input)}
+            aria-label="Ask the AI scout about a player or pick"
             placeholder="Ask about a player or pick..."
             style={{
               ...S.input, flex:1, background:'transparent', border:'none', boxShadow:'none',
@@ -1012,12 +1013,12 @@ const RosterPanel = ({ roster, label, isActive }) => {
           {isActive && <div className="dz-blink" style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)' }} />}
           <span style={{ fontSize:13, fontWeight:600, color: isActive?'var(--accent-text)':'var(--text-secondary)', letterSpacing:'0.03em' }}>{label}</span>
         </div>
-        <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)' }}>{countPlayers(roster)}/16</span>
+        <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-muted)' }}>{countPlayers(roster)}/16</span>
       </div>
       {slots.map(([lbl,key]) => <RosterSlot key={key} label={lbl} player={roster[key]} />)}
       {roster.BENCH.length > 0 && (
         <>
-          <div style={{ fontSize:10, color:'var(--text-muted)', fontWeight:600, letterSpacing:'0.07em', textTransform:'uppercase', padding:'8px 4px 4px', fontFamily:'var(--font-mono)' }}>Bench</div>
+          <div style={{ fontSize:12, color:'var(--text-muted)', fontWeight:600, letterSpacing:'0.07em', textTransform:'uppercase', padding:'8px 4px 4px', fontFamily:'var(--font-mono)' }}>Bench</div>
           {roster.BENCH.map((p,i) => <RosterSlot key={i} label="BN" player={p} />)}
         </>
       )}
@@ -1048,17 +1049,17 @@ const DraftRecap = ({ rosters, onRestart }) => {
       <div style={{ width:'100%', maxWidth:600 }}>
         <div style={{ textAlign:'center', marginBottom:32 }}>
           <div style={{ fontFamily:'var(--font-display)', fontSize:36, color:'var(--text-primary)', marginBottom:4, fontStyle:'italic' }}>Draft Complete</div>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase' }}>Season projections · 2025 stats</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase' }}>Season projections · 2025 stats</div>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:16, marginBottom:20, background:'var(--bg-raised)', borderRadius:'var(--radius-xl)', padding:'24px 32px', border:'1px solid var(--border-default)', boxShadow:'var(--shadow-md)' }}>
           <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team Human</div>
+            <div style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team Human</div>
             <div style={{ fontFamily:'var(--font-mono)', fontSize:48, fontWeight:600, color:winner==='user1'?'var(--accent)':'var(--text-muted)' }}>{s1}</div>
           </div>
           <div style={{ fontFamily:'var(--font-display)', fontSize:18, color:'var(--border-strong)', fontStyle:'italic' }}>vs</div>
           <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team CPU</div>
+            <div style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:6 }}>Team CPU</div>
             <div style={{ fontFamily:'var(--font-mono)', fontSize:48, fontWeight:600, color:winner==='user2'?'var(--cpu-accent)':'var(--text-muted)' }}>{s2}</div>
           </div>
         </div>
@@ -1076,7 +1077,7 @@ const DraftRecap = ({ rosters, onRestart }) => {
           </div>
           <div style={{ flex:1 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-              <span style={{ fontSize:11, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Scout's grade</span>
+              <span style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Scout's grade</span>
               {!recapLoading && recap && (
                 <span style={{ fontFamily:'var(--font-mono)', fontSize:16, fontWeight:700, color:'var(--accent)' }}>{recap.grade}</span>
               )}
@@ -1092,7 +1093,7 @@ const DraftRecap = ({ rosters, onRestart }) => {
         <div style={{ background:'var(--bg-raised)', borderRadius:'var(--radius-xl)', border:'1px solid var(--border-default)', overflow:'hidden', boxShadow:'var(--shadow-sm)', marginBottom:16 }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 48px 1fr', padding:'8px 20px', background:'var(--bg-inset)', borderBottom:'1px solid var(--border-subtle)' }}>
             {['Human','','CPU'].map((h,i)=>(
-              <span key={i} style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:'var(--font-mono)', textAlign:i===2?'right':'left' }}>{h}</span>
+              <span key={i} style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:'var(--font-mono)', textAlign:i===2?'right':'left' }}>{h}</span>
             ))}
           </div>
           <div className="dz-scrollbar" style={{ maxHeight:420, overflowY:'auto' }}>
@@ -1106,17 +1107,17 @@ const DraftRecap = ({ rosters, onRestart }) => {
                     <img src={getPlayerImage(p1)} style={{ width:28,height:28,borderRadius:'50%',objectFit:'cover',background:'var(--bg-inset)',border:'1px solid var(--border-subtle)' }} alt="" onError={e=>e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
                     <div>
                       <div style={{ fontSize:12,fontWeight:500,color:'var(--text-primary)' }}>{p1?.full_name||'—'}</div>
-                      <div style={{ fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p1?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
+                      <div style={{ fontSize:12,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p1?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
                     </div>
                   </div>
                   <div style={{ textAlign:'center' }}>
-                    <span style={{ fontSize:10,fontWeight:600,color:'var(--text-muted)',background:'var(--bg-inset)',padding:'2px 6px',borderRadius:'var(--radius-sm)',fontFamily:'var(--font-mono)',border:'1px solid var(--border-subtle)' }}>{lbl}</span>
+                    <span style={{ fontSize:12,fontWeight:600,color:'var(--text-muted)',background:'var(--bg-inset)',padding:'2px 6px',borderRadius:'var(--radius-sm)',fontFamily:'var(--font-mono)',border:'1px solid var(--border-subtle)' }}>{lbl}</span>
                   </div>
                   <div style={{ display:'flex',alignItems:'center',gap:8,justifyContent:'flex-end',flexDirection:'row-reverse' }}>
                     <img src={getPlayerImage(p2)} style={{ width:28,height:28,borderRadius:'50%',objectFit:'cover',background:'var(--bg-inset)',border:'1px solid var(--border-subtle)' }} alt="" onError={e=>e.target.src='https://sleepercdn.com/images/v2/icons/player_default.webp'} />
                     <div style={{ textAlign:'right' }}>
                       <div style={{ fontSize:12,fontWeight:500,color:'var(--text-primary)' }}>{p2?.full_name||'—'}</div>
-                      <div style={{ fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p2?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
+                      <div style={{ fontSize:12,color:'var(--text-muted)',fontFamily:'var(--font-mono)' }}>{p2?.stats?.pts_ppr?.toFixed(1)||0} pts</div>
                     </div>
                   </div>
                 </div>
@@ -1153,6 +1154,9 @@ const DraftSimulator = ({ user, onLogout }) => {
   const [aiLoading, setAiLoading]     = useState(false);
   const [isDraftComplete, setDone]    = useState(false);
   const [errorMsg, setErrorMsg]       = useState('');
+  // Tracks a failed player load separately from "the pool is genuinely empty",
+  // so a fetch error doesn't masquerade as "No players found".
+  const [loadError, setLoadError]     = useState(false);
   const [sidebarTab, setSidebarTab]   = useState(0);
   const [pickHistory, setPickHistory] = useState([]);
   const [hasUnseenInsight, setHasUnseenInsight] = useState(false);
@@ -1178,19 +1182,25 @@ const DraftSimulator = ({ user, onLogout }) => {
     setTimeout(() => setFlyingPicks(fp => fp.filter(f => f.id !== id)), 750);
   }, []);
 
+  const loadDraftData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(false);
+      const pr = await axios.get('http://localhost:8080/api/players/fetch', { timeout: 12000 });
+      setAllPlayers(pr.data); setDisplay(pr.data); setLoading(false);
+      const dr = await axios.post('http://localhost:8080/api/drafts', { gameMode });
+      setDraftId(dr.data.draftId);
+    } catch {
+      setLoading(false);
+      setLoadError(true);
+    }
+  }, [gameMode]);
+
   useEffect(() => {
     if (hasInit.current) return;
     hasInit.current = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const pr = await axios.get('http://localhost:8080/api/players/fetch');
-        setAllPlayers(pr.data); setDisplay(pr.data); setLoading(false);
-        const dr = await axios.post('http://localhost:8080/api/drafts', { gameMode });
-        setDraftId(dr.data.draftId);
-      } catch { setLoading(false); }
-    })();
-  }, []);
+    loadDraftData();
+  }, [loadDraftData]);
 
   useEffect(() => {
     const term = searchTerm.toLowerCase();
@@ -1296,7 +1306,7 @@ const DraftSimulator = ({ user, onLogout }) => {
           <div style={{ fontFamily:'var(--font-display)', fontSize:36, color:'var(--text-primary)', marginBottom:8, fontStyle:'italic' }}>
             Draft<span style={{ color:'var(--accent)' }}>Zone</span>
           </div>
-          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-muted)', letterSpacing:'0.08em' }}>Loading player pool…</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-muted)', letterSpacing:'0.08em' }}>Loading player pool…</div>
         </div>
       </div>
     </>
@@ -1353,7 +1363,7 @@ const DraftSimulator = ({ user, onLogout }) => {
                 transition={{ duration:0.7, times:[0,0.15,1], ease:[0.16,1,0.3,1] }}
               >
                 <img src={getPlayerImage(fp.player)} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover' }} />
-                <span style={{ fontSize:11, fontWeight:600, color:'var(--text-primary)', whiteSpace:'nowrap' }}>{fp.player.full_name}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', whiteSpace:'nowrap' }}>{fp.player.full_name}</span>
                 <Check size={13} strokeWidth={3} style={{ color:'var(--accent)', flexShrink:0 }} />
               </motion.div>
             ))}
@@ -1368,26 +1378,32 @@ const DraftSimulator = ({ user, onLogout }) => {
         }}>
           <Link to="/" style={{
             display:'flex', alignItems:'center', justifyContent:'center',
-            width:30, height:30, borderRadius:'50%', flexShrink:0,
+            width:44, height:44, borderRadius:'50%', flexShrink:0,
             border:'1px solid var(--border-default)', color:'var(--text-secondary)',
-            textDecoration:'none', fontSize:14,
-          }} title="Exit draft">←</Link>
+            textDecoration:'none',
+          }} aria-label="Exit draft" title="Exit draft"><ArrowLeft size={16} aria-hidden="true" /></Link>
 
-          <div style={{ fontFamily:'var(--font-display)', fontSize:24, color:'var(--text-primary)', flexShrink:0, letterSpacing:'-0.01em' }}>
-            Draft<span style={{ color:'var(--accent)', fontStyle:'italic' }}>Zone</span>
-          </div>
+          {/* The page's h1 — the draft board previously had no top-level heading.
+              Wordmark uses the same dz-wordmark treatment as every other page
+              instead of the serif-italic one-off it had before. */}
+          <h1 className="dz-wordmark" style={{ fontSize:24, color:'var(--text-primary)', flexShrink:0, letterSpacing:'0.02em', margin:0 }}>
+            DRAFT<span style={{ color:'var(--accent)' }}>ZONE</span>
+            <span className="sr-only"> draft simulator</span>
+          </h1>
 
           <div style={{ width:1, height:20, background:'var(--border-default)' }} />
 
           <nav style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
             {[['Search','/player-search'],['Odds','/odds'],['Bets','/my-bets'],...(user?.role==='admin'?[['Admin','/admin']]:[])].map(([label,to]) => (
               <Link key={to} to={to} style={{
-                fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
+                display:'inline-flex', alignItems:'center', minHeight:44, padding:'0 10px',
+                fontSize:12, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
                 color:'var(--text-secondary)', textDecoration:'none', fontFamily:'var(--font-body)',
               }}>{label}</Link>
             ))}
             <button onClick={onLogout} style={{
-              fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
+              display:'inline-flex', alignItems:'center', minHeight:44, padding:'0 10px',
+              fontSize:12, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase',
               color:'var(--text-secondary)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font-body)',
             }}>Log out</button>
             <ThemeToggle size={28} />
@@ -1395,11 +1411,12 @@ const DraftSimulator = ({ user, onLogout }) => {
 
           <div style={{ display:'flex', background:'var(--bg-inset)', border:'1px solid var(--border-default)', borderRadius:'var(--radius-md)', padding:3, gap:2 }}>
             {['PVP','PvAI'].map(m => (
-              <button key={m} onClick={()=>setGameMode(m)} style={{
-                padding:'5px 16px', borderRadius:'var(--radius-sm)', border:'none',
-                fontSize:11, fontWeight:600, letterSpacing:'0.04em', fontFamily:'var(--font-body)', cursor:'pointer',
+              <button key={m} onClick={()=>setGameMode(m)} aria-pressed={gameMode===m} style={{
+                display:'inline-flex', alignItems:'center', justifyContent:'center',
+                minHeight:44, padding:'0 16px', borderRadius:'var(--radius-sm)', border:'none',
+                fontSize:12, fontWeight:600, letterSpacing:'0.04em', fontFamily:'var(--font-body)', cursor:'pointer',
                 background: gameMode===m ? (m==='PVP'?'var(--accent)':'var(--cpu-accent)') : 'transparent',
-                color: gameMode===m ? 'var(--text-inverse)' : 'var(--text-muted)',
+                color: gameMode===m ? 'var(--text-inverse)' : 'var(--text-secondary)',
               }}>{m}</button>
             ))}
           </div>
@@ -1409,7 +1426,7 @@ const DraftSimulator = ({ user, onLogout }) => {
         <DynamicIsland
           expanded={isMyTurn || aiLoading}
           collapsed={
-            <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-inverse)', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>
+            <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-inverse)', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>
               R{round} · Pick {pickHistory.length+1}
             </span>
           }
@@ -1420,11 +1437,11 @@ const DraftSimulator = ({ user, onLogout }) => {
               transition={{ repeat:Infinity, duration:1.3, ease:'easeInOut' }}
               style={{ width:7, height:7, borderRadius:'50%', background: isMyTurn?'var(--accent-bright)':'var(--cpu-accent)', flexShrink:0 }}
             />
-            <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-primary)', whiteSpace:'nowrap' }}>
+            <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-primary)', whiteSpace:'nowrap' }}>
               R{round} · Pick {pickHistory.length+1}
             </span>
             <span style={{ width:1, height:14, background:'rgba(var(--text-primary-rgb), 0.15)', flexShrink:0 }} />
-            <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.03em', whiteSpace:'nowrap', color: isMyTurn?'var(--accent-text)':'var(--cpu-text)' }}>
+            <span style={{ fontSize:12, fontWeight:700, letterSpacing:'0.03em', whiteSpace:'nowrap', color: isMyTurn?'var(--accent-text)':'var(--cpu-text)' }}>
               {isMyTurn ? 'Your pick' : 'CPU picking…'}
             </span>
           </div>
@@ -1471,9 +1488,11 @@ const DraftSimulator = ({ user, onLogout }) => {
                       whileHover={{ scale:1.05 }}
                       whileTap={{ scale:0.95 }}
                       transition={{ type:'spring', stiffness:400, damping:22 }}
+                      aria-pressed={active}
                       style={{
-                        padding:'5px 13px', borderRadius:'var(--radius-pill)',
-                        fontSize:11, fontWeight:600, letterSpacing:'0.04em',
+                        display:'inline-flex', alignItems:'center', justifyContent:'center',
+                        minHeight:44, minWidth:44, padding:'0 14px', borderRadius:'var(--radius-pill)',
+                        fontSize:12, fontWeight:600, letterSpacing:'0.04em',
                         fontFamily:'var(--font-body)', cursor:'pointer',
                         border: active ? `1px solid ${m?.color||'var(--accent)'}66` : '1px solid rgba(var(--text-primary-rgb), 0.08)',
                         background: active ? (m?.bg||'var(--accent-light)') : 'transparent',
@@ -1481,7 +1500,7 @@ const DraftSimulator = ({ user, onLogout }) => {
                       }}>{cat}</motion.button>
                   );
                 })}
-                <span style={{ marginLeft:'auto', fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)' }}>
+                <span style={{ marginLeft:'auto', fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-muted)' }}>
                   {displayPlayers.length} available
                 </span>
               </div>
@@ -1494,8 +1513,28 @@ const DraftSimulator = ({ user, onLogout }) => {
                   <PlayerRow key={p.player_id} player={p} rank={i+1} maxPts={maxPts} onDraft={draftPlayer} onDraftStart={handleDraftStart} onSelect={setSelected} isDisabled={gameMode==='PvAI'&&turn===2} />
                 ))}
               </AnimatePresence>
-              {displayPlayers.length===0 && (
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:120, color:'var(--text-muted)', fontSize:13 }}>No players found</div>
+              {/* A failed load gets its own message and a retry, matching the
+                  pattern on /odds. Only a genuinely empty pool says "no players". */}
+              {loadError ? (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, height:160, textAlign:'center', padding:'0 16px' }}>
+                  <div style={{ color:'var(--text-primary)', fontSize:14, fontWeight:600 }}>Could not load players</div>
+                  <div style={{ color:'var(--text-secondary)', fontSize:13, maxWidth:280 }}>
+                    The player list didn’t load. Check your connection and try again.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadDraftData}
+                    style={{
+                      minHeight:44, padding:'0 18px', borderRadius:'var(--radius-pill)', cursor:'pointer',
+                      background:'var(--text-primary)', color:'var(--text-inverse)',
+                      border:'none', fontSize:13, fontWeight:600,
+                    }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : displayPlayers.length===0 && !loading && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:120, color:'var(--text-secondary)', fontSize:13 }}>No players found</div>
               )}
             </div>
           </div>
@@ -1506,11 +1545,12 @@ const DraftSimulator = ({ user, onLogout }) => {
             {/* Tabs */}
             <div style={{ display:'flex', gap:3, padding:4, flexShrink:0, borderRadius:'var(--radius-lg)', background:'rgba(var(--text-primary-rgb), 0.05)', border:'1px solid rgba(var(--text-primary-rgb), 0.06)' }}>
               {SIDEBAR_TABS.map((tab,i)=>(
-                <button key={tab} onClick={()=>selectSidebarTab(i)} style={{
-                  position:'relative', flex:1, padding:'8px 4px',
-                  fontSize:11, fontWeight:600, letterSpacing:'0.03em',
+                <button key={tab} onClick={()=>selectSidebarTab(i)} aria-pressed={sidebarTab===i} style={{
+                  position:'relative', flex:1, minHeight:44, padding:'0 4px',
+                  display:'inline-flex', alignItems:'center', justifyContent:'center',
+                  fontSize:12, fontWeight:600, letterSpacing:'0.03em',
                   fontFamily:'var(--font-body)', border:'none', cursor:'pointer', background:'transparent',
-                  color: sidebarTab===i ? 'var(--text-inverse)' : 'var(--text-muted)',
+                  color: sidebarTab===i ? 'var(--text-inverse)' : 'var(--text-secondary)',
                   transition:'color 0.2s',
                 }}>
                   {sidebarTab===i && (
@@ -1560,20 +1600,20 @@ const DraftSimulator = ({ user, onLogout }) => {
                 background:'rgba(var(--bg-surface-rgb), 0.55)', backdropFilter:'blur(20px) saturate(1.3)', WebkitBackdropFilter:'blur(20px) saturate(1.3)',
                 border:'1px solid var(--border-default)', boxShadow:'0 14px 32px rgba(0,0,0,0.3)',
               }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'var(--font-mono)', marginBottom:8 }}>Recent picks</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'var(--font-mono)', marginBottom:8 }}>Recent picks</div>
                 <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
                   {[...pickHistory].reverse().slice(0,3).map((h,i)=>(
                     <div key={i}>
-                      <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:11 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12 }}>
                         <span style={{ fontFamily:'var(--font-mono)', color:'var(--text-muted)', width:20, textAlign:'right', flexShrink:0 }}>{h.pick}.</span>
-                        <span style={{ fontWeight:600, color:h.turn===1?'var(--accent-text)':'var(--cpu-text)', flexShrink:0, fontFamily:'var(--font-mono)', fontSize:10 }}>
+                        <span style={{ fontWeight:600, color:h.turn===1?'var(--accent-text)':'var(--cpu-text)', flexShrink:0, fontFamily:'var(--font-mono)', fontSize:12 }}>
                           {h.turn===1?'HUM':'CPU'}
                         </span>
                         <span style={{ color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{h.player.full_name}</span>
                         <PosBadge pos={h.player.position} />
                       </div>
                       {h.reason && (
-                        <div style={{ fontSize:10, color:'var(--text-muted)', fontStyle:'italic', paddingLeft:28, marginTop:2, lineHeight:1.4 }}>
+                        <div style={{ fontSize:12, color:'var(--text-muted)', fontStyle:'italic', paddingLeft:28, marginTop:2, lineHeight:1.4 }}>
                           "{h.reason}"
                         </div>
                       )}

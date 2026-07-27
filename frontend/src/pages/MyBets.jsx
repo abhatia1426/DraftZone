@@ -68,8 +68,8 @@ export default function MyBets({ user, onLogout }) {
         <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{bet.awayTeam} @ {bet.homeTeam}</h3>
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: status.color, background: status.bg }}>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{bet.awayTeam} @ {bet.homeTeam}</h2>
+              <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: status.color, background: status.bg }}>
                 {bet.status}
               </span>
             </div>
@@ -128,7 +128,7 @@ export default function MyBets({ user, onLogout }) {
 
       <nav className="sticky top-0 z-50" style={{ background: 'rgba(var(--bg-base-rgb), 0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-3 min-h-11 flex-shrink-0">
             <Logo size={36} />
             <span className="dz-wordmark text-2xl" style={{ color: 'var(--text-primary)' }}>
               DRAFT<span style={{ color: 'var(--accent)' }}>ZONE</span>
@@ -136,7 +136,7 @@ export default function MyBets({ user, onLogout }) {
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
             {navLinks.map((item) => (
-              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Bets' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+              <Link key={item.label} to={item.to} className="inline-flex items-center min-h-11 px-2 hover:opacity-70 transition-opacity" style={{ color: item.label === 'Bets' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                 {item.label}
               </Link>
             ))}
@@ -147,7 +147,7 @@ export default function MyBets({ user, onLogout }) {
               <span style={{ color: 'var(--accent-text)' }}>Balance: </span>
               <span className="font-semibold" style={{ color: 'var(--accent)' }}>${(userStats.balance || 0).toFixed(2)}</span>
             </div>
-            <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+            <button onClick={onLogout} className="inline-flex items-center min-h-11 px-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
               Log out
             </button>
           </div>

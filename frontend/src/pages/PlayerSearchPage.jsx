@@ -128,7 +128,7 @@ export default function PlayerSearchPage({ user, onLogout }) {
                   key={pos}
                   onClick={() => setFilter(pos)}
                   aria-pressed={filter === pos}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${FOCUS_RING}`}
+                  className={`inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium transition-all ${FOCUS_RING}`}
                   style={
                     filter === pos
                       ? { background: 'var(--text-primary)', color: 'var(--text-inverse)' }
@@ -150,7 +150,7 @@ export default function PlayerSearchPage({ user, onLogout }) {
                   id="player-sort-select"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className={`text-sm font-medium rounded-lg px-3 py-1.5 outline-none ${FOCUS_RING}`}
+                  className={`text-sm font-medium rounded-lg px-3 min-h-11 outline-none ${FOCUS_RING}`}
                   style={{ background: 'rgba(var(--bg-surface-rgb), 0.7)', color: 'var(--text-primary)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)' }}
                 >
                   <option value="points">Fantasy points</option>
@@ -179,7 +179,7 @@ export default function PlayerSearchPage({ user, onLogout }) {
                   </div>
                 ) : (
                   <div className="text-center py-24">
-                    <h3 className="dz-heading text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No players found</h3>
+                    <h2 className="dz-heading text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No players found</h2>
                     <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Try adjusting your search or filters.</p>
                     <button
                       onClick={() => { setQuery(''); setFilter('All'); }}

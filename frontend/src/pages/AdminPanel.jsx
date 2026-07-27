@@ -145,16 +145,16 @@ const AdminPanel = ({ onLogout }) => {
             <span className="dz-wordmark text-2xl" style={{ color: 'var(--text-primary)' }}>
               DRAFT<span style={{ color: 'var(--accent)' }}>ZONE</span>
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}>
               Admin
             </span>
           </div>
           <div className="flex items-center gap-5">
-            <Link to="/" className="flex items-center gap-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+            <Link to="/" className="inline-flex items-center gap-2 min-h-11 px-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
               <ArrowLeft size={16} />
               Exit to site
             </Link>
-            <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+            <button onClick={onLogout} className="inline-flex items-center min-h-11 px-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
               Log out
             </button>
             <ThemeToggle />
@@ -172,7 +172,7 @@ const AdminPanel = ({ onLogout }) => {
           </div>
           <button
             onClick={refreshAll}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 min-h-11 px-4 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
             style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
           >
             <RefreshCw size={14} />
@@ -216,28 +216,50 @@ const AdminPanel = ({ onLogout }) => {
           >
             <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}>
               <h2 className="dz-heading text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Draft history</h2>
-              <div className="flex flex-wrap gap-2">
-                {GAME_MODE_FILTERS.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setModeFilter(m)}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                    style={modeFilter === m ? { background: 'var(--text-primary)', color: 'var(--text-inverse)' } : { background: 'rgba(var(--text-primary-rgb), 0.05)', color: 'var(--text-secondary)' }}
+              {/* Both groups contain an "All" pill, so each is labelled and
+                  grouped — otherwise two active "All" chips sit side by side
+                  with nothing saying which filter either belongs to. */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex items-center gap-2" role="group" aria-labelledby="admin-mode-filter-label">
+                  <span
+                    id="admin-mode-filter-label"
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    {m}
-                  </button>
-                ))}
-                <span className="w-px" style={{ background: 'rgba(var(--text-primary-rgb), 0.1)' }} />
-                {STATUS_FILTERS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatusFilter(s)}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                    style={statusFilter === s ? { background: 'var(--text-primary)', color: 'var(--text-inverse)' } : { background: 'rgba(var(--text-primary-rgb), 0.05)', color: 'var(--text-secondary)' }}
+                    Mode
+                  </span>
+                  {GAME_MODE_FILTERS.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setModeFilter(m)}
+                      aria-pressed={modeFilter === m}
+                      className="inline-flex items-center justify-center min-h-11 min-w-11 text-xs font-semibold px-4 rounded-full transition-colors"
+                      style={modeFilter === m ? { background: 'var(--text-primary)', color: 'var(--text-inverse)' } : { background: 'rgba(var(--text-primary-rgb), 0.05)', color: 'var(--text-secondary)' }}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2" role="group" aria-labelledby="admin-status-filter-label">
+                  <span
+                    id="admin-status-filter-label"
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    {s === 'IN_PROGRESS' ? 'In progress' : s === 'COMPLETED' ? 'Completed' : s}
-                  </button>
-                ))}
+                    Status
+                  </span>
+                  {STATUS_FILTERS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setStatusFilter(s)}
+                      aria-pressed={statusFilter === s}
+                      className="inline-flex items-center justify-center min-h-11 min-w-11 text-xs font-semibold px-4 rounded-full transition-colors"
+                      style={statusFilter === s ? { background: 'var(--text-primary)', color: 'var(--text-inverse)' } : { background: 'rgba(var(--text-primary-rgb), 0.05)', color: 'var(--text-secondary)' }}
+                    >
+                      {s === 'IN_PROGRESS' ? 'In progress' : s === 'COMPLETED' ? 'Completed' : s}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

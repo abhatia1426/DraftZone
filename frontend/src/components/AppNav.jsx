@@ -33,21 +33,23 @@ export default function AppNav({ user, onLogout }) {
       style={{ background: 'rgba(var(--bg-base-rgb), 0.9)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link to="/" className={`flex items-center gap-3 rounded-lg ${FOCUS_RING}`} onClick={() => setMobileOpen(false)}>
+        <Link to="/" className={`flex items-center gap-3 min-h-11 rounded-lg ${FOCUS_RING}`} onClick={() => setMobileOpen(false)}>
           <Logo size={36} />
           <span className="dz-wordmark text-2xl" style={{ color: 'var(--text-primary)' }}>
             DRAFT<span style={{ color: 'var(--accent)' }}>ZONE</span>
           </span>
         </Link>
 
-        <div className="hidden md:flex gap-8 text-sm font-medium">
+        <div className="hidden md:flex gap-6 text-sm font-medium">
           {navLinks.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
                 key={item.label}
                 to={item.to}
-                className={`hover:opacity-70 transition-opacity rounded ${FOCUS_RING}`}
+                /* min-h-11 (44px) + horizontal padding gives a WCAG-sized hit
+                   area; the label itself is unchanged visually. */
+                className={`inline-flex items-center min-h-11 px-2 hover:opacity-70 transition-opacity rounded ${FOCUS_RING}`}
                 style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 500 }}
               >
                 {item.label}
@@ -61,7 +63,7 @@ export default function AppNav({ user, onLogout }) {
           {user ? (
             <button
               onClick={onLogout}
-              className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity ${FOCUS_RING}`}
+              className={`hidden md:inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity ${FOCUS_RING}`}
               style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
             >
               Log out
@@ -69,7 +71,7 @@ export default function AppNav({ user, onLogout }) {
           ) : (
             <Link
               to="/login"
-              className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity ${FOCUS_RING}`}
+              className={`hidden md:inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity ${FOCUS_RING}`}
               style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
             >
               Get Started
@@ -78,7 +80,7 @@ export default function AppNav({ user, onLogout }) {
 
           <button
             type="button"
-            className={`md:hidden p-2 rounded-lg ${FOCUS_RING}`}
+            className={`md:hidden flex items-center justify-center w-11 h-11 rounded-lg ${FOCUS_RING}`}
             style={{ color: 'var(--text-primary)' }}
             onClick={() => setMobileOpen((v) => !v)}
             aria-expanded={mobileOpen}
@@ -105,7 +107,7 @@ export default function AppNav({ user, onLogout }) {
                   key={item.label}
                   to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={`py-2.5 text-sm font-medium rounded-lg ${FOCUS_RING}`}
+                  className={`flex items-center min-h-11 px-2 text-sm font-medium rounded-lg ${FOCUS_RING}`}
                   style={{ color: location.pathname === item.to ? 'var(--text-primary)' : 'var(--text-secondary)' }}
                 >
                   {item.label}
@@ -115,7 +117,7 @@ export default function AppNav({ user, onLogout }) {
                 {user ? (
                   <button
                     onClick={() => { setMobileOpen(false); onLogout(); }}
-                    className={`w-full px-5 py-2.5 rounded-full text-sm font-medium text-center ${FOCUS_RING}`}
+                    className={`w-full min-h-11 px-5 py-2.5 rounded-full text-sm font-medium text-center ${FOCUS_RING}`}
                     style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
                   >
                     Log out
@@ -124,7 +126,7 @@ export default function AppNav({ user, onLogout }) {
                   <Link
                     to="/login"
                     onClick={() => setMobileOpen(false)}
-                    className={`block w-full px-5 py-2.5 rounded-full text-sm font-medium text-center ${FOCUS_RING}`}
+                    className={`block w-full min-h-11 px-5 py-2.5 rounded-full text-sm font-medium text-center ${FOCUS_RING}`}
                     style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
                   >
                     Get Started

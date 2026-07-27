@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Logo from './components/Logo';
+import { Users } from 'lucide-react';
+import AppNav from './components/AppNav';
 
-export default function Authors() {
+export default function Authors({ user, onLogout }) {
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const authors = [
     {
@@ -32,55 +26,35 @@ export default function Authors() {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#0a1628] via-[#0f1f33] to-[#0a1628] text-white relative overflow-hidden">
-      
-      {/* Animated Background Orbs */}
+    <div className="min-h-screen w-full relative overflow-hidden" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+
+      {/* Ambient accent glow, tinted from the accent token so it reads correctly
+          in both themes rather than being pinned to one hardcoded green. */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-[#1DB954] rounded-full blur-[120px] opacity-20 animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#1DB954] rounded-full blur-[120px] opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-[#1DB954] rounded-full blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-20 left-10 w-96 h-96 rounded-full blur-[120px] opacity-20" style={{ background: 'var(--accent-bright)' }} />
+        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-[120px] opacity-20" style={{ background: 'var(--accent-bright)' }} />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-[120px] opacity-10" style={{ background: 'var(--accent-bright)' }} />
       </div>
 
-      {/* NAVBAR */}
-      <nav 
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-        style={{
-          background: scrollY > 50 ? 'rgba(10, 14, 26, 0.95)' : 'transparent',
-          backdropFilter: scrollY > 50 ? 'blur(12px)' : 'none'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-3">
-            <Logo size={48} />
-            <span className="text-2xl font-bold tracking-wide">
-              <span className="text-white">DRAFT</span>
-              <span className="text-[#1DB954]">ZONE</span>
-            </span>
-          </Link>
+      <AppNav user={user} onLogout={onLogout} />
 
-          <div className="hidden md:flex gap-8 text-gray-400 text-sm font-semibold tracking-wider">
-            <Link to="/" className="hover:text-[#1DB954] transition-colors">HOME</Link>
-            <Link to="/player-search" className="hover:text-[#1DB954] transition-colors">PLAYERS</Link>
-            <Link to="/draft" className="hover:text-[#1DB954] transition-colors">DRAFT</Link>
-            <Link to="/odds" className="hover:text-[#1DB954] transition-colors">ODDS</Link>
-            <Link to="/login" className="hover:text-[#1DB954] transition-colors">LOGIN & SIGNUP</Link>
-          </div>
-        </div>
-      </nav>
-
-      <div className="pt-32 px-6 md:px-10 max-w-7xl mx-auto pb-20 relative z-10">
+      <div className="pt-16 px-6 md:px-10 max-w-7xl mx-auto pb-20 relative z-10">
 
         {/* Enhanced Header */}
         <div className="mb-12 text-center">
           <div className="inline-block mb-4">
-            <span className="px-4 py-2 bg-[#1DB954]/20 rounded-full text-[#1DB954] text-sm font-bold border border-[#1DB954]/30">
-              👥 MEET THE TEAM
+            <span
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+              style={{ background: 'var(--accent-light)', color: 'var(--accent-text)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}
+            >
+              <Users size={16} aria-hidden="true" />
+              MEET THE TEAM
             </span>
           </div>
-          <h1 className="text-6xl md:text-7xl font-black mb-4 bg-gradient-to-r from-white via-[#1DB954] to-white bg-clip-text text-transparent">
+          <h1 className="text-6xl md:text-7xl font-black mb-4" style={{ color: 'var(--text-primary)' }}>
             Built by Fantasy Enthusiasts
           </h1>
-          <p className="text-gray-400 text-xl">The passionate developers behind your ultimate fantasy football companion</p>
+          <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>The passionate developers behind your ultimate fantasy football companion</p>
         </div>
 
         {/* AUTHORS GRID */}
@@ -92,50 +66,51 @@ export default function Authors() {
               onMouseEnter={() => setHoveredCard(index)}
               onMouseLeave={() => setHoveredCard(null)}
             >
-              {/* Glowing border effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#1DB954]/0 via-[#1DB954]/50 to-[#1DB954]/0 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <div className="relative bg-gradient-to-br from-[#111318]/90 to-[#16233b]/90 backdrop-blur-xl p-8 rounded-3xl border border-[#1DB954]/20 hover:border-[#1DB954]/50 transition-all duration-500 hover:shadow-2xl hover:shadow-[#1DB954]/30 hover:-translate-y-2">
-                
+              <div
+                className="relative backdrop-blur-xl p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-md)' }}
+              >
+
                 {/* HEADER WITH IMAGE */}
-                <div className="flex items-start gap-6 mb-6 pb-6 border-b border-[#1DB954]/20">
+                <div className="flex items-start gap-6 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                   {/* Profile Image */}
                   <div className="relative group/img flex-shrink-0">
-                    <div className="absolute inset-0 bg-[#1DB954] blur-2xl opacity-30 group-hover/img:opacity-50 transition-opacity"></div>
-                    <img 
+                    <img
                       src={author.img}
-                      alt={author.name}
-                      className="relative h-24 w-24 rounded-2xl border-2 border-[#1DB954]/50 bg-gradient-to-br from-white/10 to-white/5 object-cover backdrop-blur-sm shadow-xl transition-transform group-hover/img:scale-110" 
+                      alt={`${author.name}, ${author.role}`}
+                      className="relative h-24 w-24 rounded-2xl object-cover shadow-xl transition-transform group-hover/img:scale-110"
+                      style={{ border: `2px solid rgba(var(--accent-rgb), 0.5)` }}
                     />
                   </div>
 
-                  {/* Name & Role */}
+                  {/* Name & Role — h2 so the page reads h1 -> h2 with no skipped level */}
                   <div className="flex-1 pt-2">
-                    <h3 className="text-3xl font-black text-white leading-tight mb-2 group-hover:text-[#1DB954] transition-colors">
+                    <h2 className="text-3xl font-black leading-tight mb-2" style={{ color: 'var(--text-primary)' }}>
                       {author.name}
-                    </h3>
-                    <p className="text-[#1DB954] font-bold text-sm uppercase tracking-wider">
+                    </h2>
+                    <p className="font-bold text-sm uppercase tracking-wider" style={{ color: 'var(--accent-text)' }}>
                       {author.role}
                     </p>
                   </div>
                 </div>
 
                 {/* BIO */}
-                <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
                   {author.bio}
                 </p>
 
                 {/* SKILLS */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-3 h-3 rounded-full bg-[#1DB954] shadow-lg shadow-[#1DB954]/50"></div>
-                    <p className="text-white font-black text-lg tracking-wide">SKILLS</p>
+                    <div className="w-3 h-3 rounded-full" style={{ background: 'var(--accent)' }}></div>
+                    <p className="font-black text-lg tracking-wide" style={{ color: 'var(--text-primary)' }}>SKILLS</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {author.skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-4 py-2 bg-gradient-to-br from-[#1DB954]/10 to-[#1DB954]/5 hover:from-[#1DB954]/20 hover:to-[#1DB954]/10 text-white text-xs font-bold rounded-xl transition-all duration-300 cursor-default border border-[#1DB954]/30 hover:border-[#1DB954]/60 hover:scale-105 hover:shadow-lg hover:shadow-[#1DB954]/20"
+                        className="px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300 cursor-default"
+                        style={{ background: 'var(--accent-light)', color: 'var(--accent-text)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}
                       >
                         {skill}
                       </span>
@@ -148,12 +123,13 @@ export default function Authors() {
                   {/* Email Button */}
                   <a
                     href={`mailto:${author.email}`}
-                    className="group/btn flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-br from-[#1DB954]/10 to-[#1DB954]/5 hover:from-[#1DB954]/20 hover:to-[#1DB954]/10 border border-[#1DB954]/30 hover:border-[#1DB954]/60 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#1DB954]/20"
+                    className="group/btn flex items-center justify-center gap-3 w-full py-4 rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                    style={{ background: 'var(--accent-light)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}
                   >
-                    <svg className="w-5 h-5 text-gray-400 group-hover/btn:text-[#1DB954] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent-text)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    <span className="text-white font-bold text-sm">{author.email}</span>
+                    <span className="font-bold text-sm" style={{ color: 'var(--accent-text)' }}>{author.email}</span>
                   </a>
                 </div>
 
@@ -164,9 +140,10 @@ export default function Authors() {
 
         {/* CTA SECTION */}
         <div className="relative group overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1DB954]/0 via-[#1DB954]/50 to-[#1DB954]/0 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          
-          <div className="relative bg-gradient-to-br from-[#1DB954] to-[#17a84d] p-12 rounded-3xl overflow-hidden">
+          {/* Bright accent band with a fixed dark ink, matching the CTA treatment
+              on Home. A theme-dependent text color would fail contrast here:
+              --text-primary is near-white in dark mode, which is illegible on green. */}
+          <div className="relative p-12 rounded-3xl overflow-hidden" style={{ background: 'var(--accent-bright)' }}>
             {/* Pattern Overlay */}
             <div className="absolute inset-0 opacity-10">
               <div 
@@ -179,18 +156,19 @@ export default function Authors() {
             </div>
 
             <div className="relative z-10 text-center">
-              <h2 className="text-4xl md:text-5xl font-black mb-4 text-black">
+              <h2 className="text-4xl md:text-5xl font-black mb-4" style={{ color: '#062012' }}>
                 Ready to Elevate Your Draft?
               </h2>
-              <p className="text-lg text-black/80 mb-8 max-w-2xl mx-auto">
+              <p className="text-lg mb-8 max-w-2xl mx-auto" style={{ color: 'rgba(6, 32, 18, 0.85)' }}>
                 Join us in revolutionizing fantasy football with data-driven insights and cutting-edge technology
               </p>
               <Link
                 to="/draft"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white font-bold rounded-full hover:scale-105 transition-all duration-300 shadow-2xl"
+                className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-full hover:scale-105 transition-all duration-300 shadow-2xl"
+                style={{ background: '#062012', color: '#FDFAF5', minHeight: 44 }}
               >
                 Start Drafting
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
@@ -201,12 +179,12 @@ export default function Authors() {
       </div>
 
       {/* FOOTER */}
-      <footer className="relative py-8 px-6 border-t border-[#1DB954]/20">
+      <footer className="relative py-8 px-6" style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-400 text-sm">
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             © 2025 DraftZone | Construction of User Interfaces, Fall 2025, COMS 3190
           </p>
-          <p className="text-gray-500 text-xs mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Built with passion by Neel Rajan & Aadi Bhatia at Iowa State University
           </p>
         </div>

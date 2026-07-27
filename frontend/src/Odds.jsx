@@ -185,7 +185,7 @@ export default function Odds({ user, onLogout }) {
 
       <nav className="sticky top-0 z-50" style={{ background: 'rgba(var(--bg-base-rgb), 0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0">
+          <Link to="/" className="flex items-center gap-3 min-h-11 flex-shrink-0">
             <Logo size={36} />
             <span className="dz-wordmark text-2xl" style={{ color: 'var(--text-primary)' }}>
               DRAFT<span style={{ color: 'var(--accent)' }}>ZONE</span>
@@ -193,7 +193,7 @@ export default function Odds({ user, onLogout }) {
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
             {navLinks.map((item) => (
-              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Odds' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+              <Link key={item.label} to={item.to} className="inline-flex items-center min-h-11 px-2 hover:opacity-70 transition-opacity" style={{ color: item.label === 'Odds' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                 {item.label}
               </Link>
             ))}
@@ -208,14 +208,14 @@ export default function Odds({ user, onLogout }) {
                     {userBalance !== null ? `$${userBalance.toFixed(2)}` : '—'}
                   </span>
                 </div>
-                <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+                <button onClick={onLogout} className="inline-flex items-center min-h-11 px-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
                   Log out
                 </button>
               </div>
             ) : (
               <Link
                 to="/login"
-                className="px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
                 style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
               >
                 Log in to bet
@@ -244,7 +244,7 @@ export default function Odds({ user, onLogout }) {
             <p className="text-base mb-4" style={{ color: 'var(--warn)' }}>{error}</p>
             <button
               onClick={fetchOdds}
-              className="px-6 py-2.5 rounded-full text-sm font-medium"
+              className="inline-flex items-center min-h-11 px-6 rounded-full text-sm font-medium"
               style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
             >
               Try again
@@ -283,8 +283,8 @@ export default function Odds({ user, onLogout }) {
                         alt={game.away_team}
                       />
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Away</p>
-                        <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.away_team}</h3>
+                        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Away</p>
+                        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.away_team}</h2>
                       </div>
                     </div>
 
@@ -301,8 +301,8 @@ export default function Odds({ user, onLogout }) {
                         alt={game.home_team}
                       />
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Home</p>
-                        <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.home_team}</h3>
+                        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Home</p>
+                        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.home_team}</h2>
                       </div>
                     </div>
                   </div>

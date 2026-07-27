@@ -67,22 +67,22 @@ export default function PlayerCard({ player, onClick }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              className="text-xs font-semibold px-2 py-0.5 rounded-full"
               style={{ color: meta.color, background: meta.bg }}
             >
               {player.position}
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{player.team || 'FA'}</span>
           </div>
-          <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
             {player.full_name}
-          </h3>
+          </h2>
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>
             {(player.stats?.pts_ppr || 0).toFixed(1)}
           </div>
-          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>PTS</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>PTS</div>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export default function PlayerCard({ player, onClick }) {
               style={{ background: 'rgba(var(--text-primary-rgb), 0.03)' }}
             >
               <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{stat.value}</div>
-              <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{stat.label}</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{stat.label}</div>
             </div>
           ))}
         </div>

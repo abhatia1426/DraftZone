@@ -71,13 +71,16 @@ const Login = ({ user, onLogin }) => {
 
   const strength = getPasswordStrength(password);
 
-  const validate = () => {
+  // Validates the values actually being submitted rather than reading state.
+  // The demo-login buttons call this in the same tick as setEmail/setPassword,
+  // so state is still stale at that point and validating it rejected valid input.
+  const validate = (candidateEmail = email, candidatePassword = password) => {
     const errs = {};
-    if (!EMAIL_RE.test(email)) errs.email = 'Enter a valid email address.';
+    if (!EMAIL_RE.test(candidateEmail)) errs.email = 'Enter a valid email address.';
     if (isSignup) {
-      if (password.length < 8 || !/\d/.test(password)) errs.password = 'At least 8 characters, including a number.';
-      if (confirmPassword !== password) errs.confirmPassword = "Passwords don't match.";
-    } else if (!password) {
+      if (candidatePassword.length < 8 || !/\d/.test(candidatePassword)) errs.password = 'At least 8 characters, including a number.';
+      if (confirmPassword !== candidatePassword) errs.confirmPassword = "Passwords don't match.";
+    } else if (!candidatePassword) {
       errs.password = 'Enter your password.';
     }
     setFieldErrors(errs);
@@ -86,15 +89,17 @@ const Login = ({ user, onLogin }) => {
 
   const submitCredentials = async (submitEmail, submitPassword) => {
     setError('');
-    if (!validate()) return;
+    if (!validate(submitEmail, submitPassword)) return;
 
     setIsSubmitting(true);
     const endpoint = isSignup ? '/signup' : '/login';
 
     try {
+      // Without a timeout a stalled request leaves the button stuck on
+      // "Please wait…" forever with no way back.
       const res = await axios.post(`http://localhost:8080/api/auth${endpoint}`, {
         email: submitEmail, password: submitPassword, role,
-      });
+      }, { timeout: 12000 });
 
       if (res.data.success) {
         const userData = res.data.user;
@@ -112,7 +117,10 @@ const Login = ({ user, onLogin }) => {
         notify({ type: 'error', title: isSignup ? 'Sign up failed' : 'Login failed', message: res.data.message });
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Connection error. Is the backend running?';
+      const timedOut = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT';
+      const msg = timedOut
+        ? 'That took too long to respond. Check your connection and try again.'
+        : err.response?.data?.message || 'Connection error. Is the backend running?';
       setError(msg);
       notify({ type: 'error', title: isSignup ? 'Sign up failed' : 'Login failed', message: msg });
     } finally {
@@ -165,7 +173,7 @@ const Login = ({ user, onLogin }) => {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+            <Link to="/" className="inline-flex items-center min-h-11 px-2 text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
               Back to homepage
             </Link>
             <ThemeToggle />
@@ -207,9 +215,11 @@ const Login = ({ user, onLogin }) => {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Email</label>
+              <label htmlFor="dz-email" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Email</label>
               <input
+                id="dz-email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl p-3 mt-1 outline-none transition-colors"
@@ -223,10 +233,12 @@ const Login = ({ user, onLogin }) => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Password</label>
+              <label htmlFor="dz-password" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Password</label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="dz-password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl p-3 mt-1 outline-none transition-colors"
@@ -236,8 +248,13 @@ const Login = ({ user, onLogin }) => {
                   }}
                   placeholder="••••••••"
                 />
+                {/* 44x44 hit area per WCAG target size; the icon itself stays 16px. */}
                 <button type="button" onClick={() => setShowPassword((s) => !s)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-4px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  style={{
+                    position: 'absolute', right: 2, top: 'calc(50% + 2px)', transform: 'translateY(-50%)',
+                    width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
+                  }}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -266,10 +283,12 @@ const Login = ({ user, onLogin }) => {
                   style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 14 }}
                 >
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Confirm password</label>
+                    <label htmlFor="dz-confirm-password" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Confirm password</label>
                     <div style={{ position: 'relative' }}>
                       <input
+                        id="dz-confirm-password"
                         type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="w-full rounded-xl p-3 mt-1 outline-none transition-colors"
@@ -287,8 +306,9 @@ const Login = ({ user, onLogin }) => {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Select role</label>
+                    <label htmlFor="dz-role" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Select role</label>
                     <select
+                      id="dz-role"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       className="w-full rounded-xl p-3 mt-1 outline-none cursor-pointer"
@@ -328,7 +348,7 @@ const Login = ({ user, onLogin }) => {
 
           <div className="mt-5 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
             {isSignup ? 'Already have an account?' : 'Need an account?'}{' '}
-            <button onClick={toggleMode} className="font-semibold" style={{ color: 'var(--accent)' }}>
+            <button onClick={toggleMode} className="font-semibold" style={{ color: 'var(--accent)', minHeight: 44, padding: '0 6px', cursor: 'pointer' }}>
               {isSignup ? 'Log in' : 'Sign up'}
             </button>
           </div>
@@ -340,11 +360,11 @@ const Login = ({ user, onLogin }) => {
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <motion.button whileTap={{ scale: 0.96 }} type="button" onClick={() => quickFill('admin@draftzone.com', 'admin')}
-                  style={{ flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(var(--bg-surface-rgb), 0.6)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                  style={{ flex: 1, minHeight: 44, padding: '8px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: 'rgba(var(--bg-surface-rgb), 0.6)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', color: 'var(--text-primary)', cursor: 'pointer' }}>
                   Admin
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.96 }} type="button" onClick={() => quickFill('user@draftzone.com', 'user')}
-                  style={{ flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(var(--bg-surface-rgb), 0.6)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                  style={{ flex: 1, minHeight: 44, padding: '8px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: 'rgba(var(--bg-surface-rgb), 0.6)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', color: 'var(--text-primary)', cursor: 'pointer' }}>
                   User
                 </motion.button>
               </div>

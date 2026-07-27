@@ -13,12 +13,22 @@ export default function ThemeToggle({ size = 34 }) {
       whileTap={{ scale: 0.9 }}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       style={{
-        width: size, height: size, borderRadius: '50%', flexShrink: 0,
+        // Hit area is always >=44px for WCAG target size, while the visible
+        // disc stays `size`. Background is painted on the inner span.
+        width: Math.max(size, 44), height: Math.max(size, 44), flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(var(--text-primary-rgb), 0.06)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)',
-        color: 'var(--text-secondary)', cursor: 'pointer', overflow: 'hidden',
+        background: 'none', border: 'none', padding: 0,
+        color: 'var(--text-secondary)', cursor: 'pointer',
       }}
     >
+      <span
+        style={{
+          width: size, height: size, borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(var(--text-primary-rgb), 0.06)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)',
+          overflow: 'hidden',
+        }}
+      >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={theme}
@@ -31,6 +41,7 @@ export default function ThemeToggle({ size = 34 }) {
           {isDark ? <Moon size={size * 0.45} /> : <Sun size={size * 0.45} />}
         </motion.span>
       </AnimatePresence>
+      </span>
     </motion.button>
   );
 }

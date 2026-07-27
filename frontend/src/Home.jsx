@@ -267,7 +267,7 @@ export default function Home({ user, onLogout }) {
         style={{ background: 'rgba(8,9,10,0.72)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: `1px solid ${HAIRLINE}` }}
       >
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Link to="/" className={`flex items-center gap-3 rounded-lg ${FOCUS_RING}`} onClick={() => setMobileOpen(false)}>
+          <Link to="/" className={`flex items-center gap-3 min-h-11 rounded-lg ${FOCUS_RING}`} onClick={() => setMobileOpen(false)}>
             <Logo size={30} />
             <span className="dz-wordmark text-lg tracking-wide" style={{ color: PAPER }}>
               DRAFT<span style={{ color: ACCENT }}>ZONE</span>
@@ -279,7 +279,7 @@ export default function Home({ user, onLogout }) {
               <Link
                 key={l.label}
                 to={l.to}
-                className={`hover:opacity-100 transition-opacity rounded ${FOCUS_RING}`}
+                className={`inline-flex items-center min-h-11 px-2 hover:opacity-100 transition-opacity rounded ${FOCUS_RING}`}
                 style={{ color: 'rgba(245,245,247,0.6)' }}
               >
                 {l.label}
@@ -291,7 +291,7 @@ export default function Home({ user, onLogout }) {
             {user ? (
               <button
                 onClick={onLogout}
-                className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
+                className={`hidden md:inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
                 style={{ color: PAPER, borderColor: HAIRLINE }}
               >
                 Log out
@@ -299,7 +299,7 @@ export default function Home({ user, onLogout }) {
             ) : (
               <Link
                 to="/login"
-                className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
+                className={`hidden md:inline-flex items-center min-h-11 px-5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
                 style={{ color: PAPER, borderColor: HAIRLINE }}
               >
                 Log in
@@ -441,7 +441,7 @@ export default function Home({ user, onLogout }) {
               <div className="dz-heading font-bold tabular-nums" style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)', color: PAPER }}>
                 <AnimatedNumber value={stat.value} reduceMotion={prefersReducedMotion} />
               </div>
-              <div className="text-xs uppercase tracking-widest mt-3" style={{ color: 'rgba(245,245,247,0.45)' }}>
+              <div className="text-xs uppercase tracking-widest mt-3" style={{ color: 'rgba(245,245,247,0.52)' }}>
                 {stat.label}
               </div>
             </motion.div>
@@ -529,7 +529,7 @@ export default function Home({ user, onLogout }) {
                 </div>
                 <Link
                   to={cap.to}
-                  className={`inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap md:pl-6 rounded ${FOCUS_RING}`}
+                  className={`inline-flex items-center min-h-11 gap-1.5 text-sm font-medium whitespace-nowrap md:pl-6 rounded ${FOCUS_RING}`}
                   style={{ color: ACCENT }}
                 >
                   {cap.cta}
@@ -581,16 +581,16 @@ export default function Home({ user, onLogout }) {
                   DRAFT<span style={{ color: ACCENT }}>ZONE</span>
                 </span>
               </div>
-              <p className="text-sm max-w-xs leading-relaxed" style={{ color: 'rgba(245,245,247,0.45)' }}>
+              <p className="text-sm max-w-xs leading-relaxed" style={{ color: 'rgba(245,245,247,0.52)' }}>
                 AI-powered mock drafts and live odds tracking for fantasy football managers.
               </p>
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.4)' }}>Product</div>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.52)' }}>Product</div>
               <div className="flex flex-col gap-2.5">
                 {[{ label: 'Draft simulator', to: '/draft' }, { label: 'Player search', to: '/player-search' }, { label: 'Odds', to: '/odds' }, { label: 'My bets', to: '/my-bets' }].map((l) => (
-                  <Link key={l.label} to={l.to} className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>
+                  <Link key={l.label} to={l.to} className={`inline-flex items-center min-h-11 text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>
                     {l.label}
                   </Link>
                 ))}
@@ -598,16 +598,16 @@ export default function Home({ user, onLogout }) {
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.4)' }}>Project</div>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.52)' }}>Project</div>
               <div className="flex flex-col gap-2.5">
-                <Link to="/authors" className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Authors</Link>
-                <Link to="/login" className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Log in</Link>
+                <Link to="/authors" className={`inline-flex items-center min-h-11 text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Authors</Link>
+                <Link to="/login" className={`inline-flex items-center min-h-11 text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Log in</Link>
               </div>
             </div>
           </div>
 
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-            <span className="text-xs" style={{ color: 'rgba(245,245,247,0.4)' }}>© 2025 DraftZone. Built as a class project.</span>
+            <span className="text-xs" style={{ color: 'rgba(245,245,247,0.52)' }}>© 2025 DraftZone. Built as a class project.</span>
           </div>
         </div>
       </footer>
