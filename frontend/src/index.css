@@ -1,3 +1,121 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --bg-base: #F5F2EC;
+  --bg-base-rgb: 245, 242, 236;
+  --bg-surface: #FDFAF5;
+  --bg-surface-rgb: 253, 250, 245;
+  --bg-raised: #FFFFFF;
+  --bg-raised-rgb: 255, 255, 255;
+  --bg-inset: #EDE9E0;
+  --bg-tint: #CFE0C2;
+
+  --border-subtle: rgba(26, 24, 20, 0.08);
+  --border-default: rgba(26, 24, 20, 0.14);
+  --border-strong: rgba(26, 24, 20, 0.28);
+
+  --text-primary: #1A1814;
+  --text-primary-rgb: 26, 24, 20;
+  --text-secondary: #6B6456;
+  --text-muted: #A89E8E;
+  --text-inverse: #FDFAF5;
+  --text-inverse-rgb: 253, 250, 245;
+
+  --accent: #2D6A2D;
+  --accent-bright: #3FCB6E;
+  --accent-light: #EBF5EB;
+  --accent-mid: #4A9B4A;
+  --accent-text: #1E4A1E;
+  --accent-rgb: 45, 106, 45;
+
+  --cpu-accent: #8B4513;
+  --cpu-light: #F5EDE3;
+  --cpu-text: #5C2E0A;
+
+  --warn: #C4570A;
+  --warn-light: #FEF0E6;
+  --warn-rgb: 196, 87, 10;
+
+  --danger: #E5847A;
+
+  --info: #096DD9;
+  --info-light: #E6F7FF;
+  --violet: #531DAB;
+  --violet-light: #F9F0FF;
+  --gold: #8A6D1D;
+  --gold-light: #FBF3D9;
+
+  --shadow-sm: 0 1px 3px rgba(26,24,20,0.08), 0 1px 2px rgba(26,24,20,0.04);
+  --shadow-md: 0 4px 12px rgba(26,24,20,0.10), 0 2px 4px rgba(26,24,20,0.06);
+  --shadow-lg: 0 12px 32px rgba(26,24,20,0.12), 0 4px 8px rgba(26,24,20,0.06);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  color-scheme: light;
+}
+
+:root.dark {
+  /* Neutral cool-charcoal dark theme — no warm/brown cast. Accent green is
+     reserved for highlights (buttons, glows, active states), not the base. */
+  --bg-base: #0A0A0C;
+  --bg-base-rgb: 10, 10, 12;
+  --bg-surface: #131317;
+  --bg-surface-rgb: 19, 19, 23;
+  --bg-raised: #1C1C21;
+  --bg-raised-rgb: 28, 28, 33;
+  --bg-inset: #0D0D10;
+  --bg-tint: #0E1210;
+
+  --border-subtle: rgba(244, 244, 247, 0.06);
+  --border-default: rgba(244, 244, 247, 0.12);
+  --border-strong: rgba(244, 244, 247, 0.24);
+
+  --text-primary: #F4F4F6;
+  --text-primary-rgb: 244, 244, 246;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --text-inverse: #0A0A0C;
+  --text-inverse-rgb: 10, 10, 12;
+
+  --accent: #4FCE7C;
+  --accent-bright: #5FE080;
+  --accent-light: rgba(79, 206, 124, 0.14);
+  --accent-mid: #4FCE7C;
+  --accent-text: #8FE3A6;
+  --accent-rgb: 79, 206, 124;
+
+  --cpu-accent: #C97B4A;
+  --cpu-light: rgba(201, 123, 74, 0.14);
+  --cpu-text: #E3AE8A;
+
+  --warn: #E08249;
+  --warn-light: rgba(224, 130, 73, 0.14);
+  --warn-rgb: 224, 130, 73;
+
+  --danger: #F0968D;
+
+  --info: #5FB3E8;
+  --info-light: rgba(95, 179, 232, 0.14);
+  --violet: #B18AE8;
+  --violet-light: rgba(177, 138, 232, 0.14);
+  --gold: #D4AF5A;
+  --gold-light: rgba(212, 175, 90, 0.14);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.24), 0 1px 2px rgba(0,0,0,0.16);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.30), 0 2px 4px rgba(0,0,0,0.20);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.36), 0 4px 8px rgba(0,0,0,0.20);
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}

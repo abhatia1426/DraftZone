@@ -38,13 +38,21 @@ export default function PlayerCard({ player, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="group cursor-pointer rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)]"
       style={{
-        background: 'rgba(253,250,245,0.7)',
+        background: 'rgba(var(--bg-surface-rgb), 0.7)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        border: '1px solid rgba(26,24,20,0.08)',
-        boxShadow: '0 4px 16px rgba(26,24,20,0.05)',
+        border: '1px solid rgba(var(--text-primary-rgb), 0.08)',
+        boxShadow: '0 4px 16px rgba(var(--text-primary-rgb), 0.05)',
       }}
     >
       <div className="flex items-start gap-3 mb-4">
@@ -52,7 +60,7 @@ export default function PlayerCard({ player, onClick }) {
           src={getPlayerImage(player)}
           alt={player.full_name}
           className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-          style={{ background: '#E8E2D5', border: '1px solid rgba(26,24,20,0.08)' }}
+          style={{ background: 'var(--bg-inset)', border: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}
           onError={(e) => { e.target.src = 'https://sleepercdn.com/images/v2/icons/player_default.webp'; }}
           loading="lazy"
         />
@@ -64,17 +72,17 @@ export default function PlayerCard({ player, onClick }) {
             >
               {player.position}
             </span>
-            <span className="text-xs" style={{ color: '#8A8272' }}>{player.team || 'FA'}</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{player.team || 'FA'}</span>
           </div>
-          <h3 className="text-sm font-semibold truncate" style={{ color: '#1A1814' }}>
+          <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
             {player.full_name}
           </h3>
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-lg font-bold" style={{ color: '#2D6A2D' }}>
+          <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>
             {(player.stats?.pts_ppr || 0).toFixed(1)}
           </div>
-          <div className="text-[9px]" style={{ color: '#A89E8E' }}>PTS</div>
+          <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>PTS</div>
         </div>
       </div>
 
@@ -84,10 +92,10 @@ export default function PlayerCard({ player, onClick }) {
             <div
               key={stat.label}
               className="text-center py-2 rounded-lg"
-              style={{ background: 'rgba(26,24,20,0.03)' }}
+              style={{ background: 'rgba(var(--text-primary-rgb), 0.03)' }}
             >
-              <div className="text-sm font-semibold" style={{ color: '#1A1814' }}>{stat.value}</div>
-              <div className="text-[9px]" style={{ color: '#A89E8E' }}>{stat.label}</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{stat.value}</div>
+              <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{stat.label}</div>
             </div>
           ))}
         </div>

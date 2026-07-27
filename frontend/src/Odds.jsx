@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import Logo from './components/Logo';
+import ThemeToggle from './components/ThemeToggle';
 import { useNotify } from './components/NotificationProvider';
 
 const NAV_LINKS = [
@@ -175,73 +176,76 @@ export default function Odds({ user, onLogout }) {
   };
 
   return (
-    <div className="w-full min-h-screen" style={{ background: '#F5F2EC', fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full min-h-screen" style={{ background: 'var(--bg-base)', fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
         .dz-wordmark { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
         .dz-heading { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; }
       `}</style>
 
-      <nav className="sticky top-0 z-50" style={{ background: 'rgba(245,242,236,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
+      <nav className="sticky top-0 z-50" style={{ background: 'rgba(var(--bg-base-rgb), 0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
           <Link to="/" className="flex items-center gap-3 flex-shrink-0">
             <Logo size={36} />
-            <span className="dz-wordmark text-2xl" style={{ color: '#1A1814' }}>
-              DRAFT<span style={{ color: '#2D6A2D' }}>ZONE</span>
+            <span className="dz-wordmark text-2xl" style={{ color: 'var(--text-primary)' }}>
+              DRAFT<span style={{ color: 'var(--accent)' }}>ZONE</span>
             </span>
           </Link>
           <div className="hidden md:flex gap-8 text-sm font-medium">
             {navLinks.map((item) => (
-              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Odds' ? '#1A1814' : '#6B6456' }}>
+              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: item.label === 'Odds' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                 {item.label}
               </Link>
             ))}
           </div>
-          {userId ? (
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="px-4 py-2 rounded-full text-sm" style={{ background: '#EBF5EB', border: '1px solid rgba(45,106,45,0.2)' }}>
-                <span style={{ color: '#4A7A4A' }}>Balance: </span>
-                <span className="font-semibold" style={{ color: '#2D6A2D' }}>
-                  {userBalance !== null ? `$${userBalance.toFixed(2)}` : '—'}
-                </span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <ThemeToggle />
+            {userId ? (
+              <div className="flex items-center gap-3">
+                <div className="px-4 py-2 rounded-full text-sm" style={{ background: 'var(--accent-light)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+                  <span style={{ color: 'var(--accent-text)' }}>Balance: </span>
+                  <span className="font-semibold" style={{ color: 'var(--accent)' }}>
+                    {userBalance !== null ? `$${userBalance.toFixed(2)}` : '—'}
+                  </span>
+                </div>
+                <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+                  Log out
+                </button>
               </div>
-              <button onClick={onLogout} className="text-sm font-medium hover:opacity-70 transition-opacity" style={{ color: '#6B6456' }}>
-                Log out
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex-shrink-0"
-              style={{ background: '#1A1814', color: '#FDFAF5' }}
-            >
-              Log in to bet
-            </Link>
-          )}
+            ) : (
+              <Link
+                to="/login"
+                className="px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+                style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
+              >
+                Log in to bet
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold mb-4 px-3 py-1.5 rounded-full" style={{ color: '#C4570A', background: '#FEF0E6' }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#C4570A' }} />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold mb-4 px-3 py-1.5 rounded-full" style={{ color: 'var(--warn)', background: 'var(--warn-light)' }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warn)' }} />
             LIVE
           </div>
-          <h1 className="dz-heading text-4xl md:text-5xl font-bold mb-3" style={{ color: '#1A1814' }}>NFL betting odds</h1>
-          <p className="text-base" style={{ color: '#6B6456' }}>Tap any line to place your wager.</p>
+          <h1 className="dz-heading text-4xl md:text-5xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>NFL betting odds</h1>
+          <p className="text-base" style={{ color: 'var(--text-secondary)' }}>Tap any line to place your wager.</p>
         </div>
 
         {loading && (
-          <div className="text-center py-24" style={{ color: '#8A8272' }}>Loading odds…</div>
+          <div className="text-center py-24" style={{ color: 'var(--text-muted)' }}>Loading odds…</div>
         )}
 
         {!loading && error && (
           <div className="text-center py-24">
-            <p className="text-base mb-4" style={{ color: '#C4570A' }}>{error}</p>
+            <p className="text-base mb-4" style={{ color: 'var(--warn)' }}>{error}</p>
             <button
               onClick={fetchOdds}
               className="px-6 py-2.5 rounded-full text-sm font-medium"
-              style={{ background: '#1A1814', color: '#FDFAF5' }}
+              style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
             >
               Try again
             </button>
@@ -250,8 +254,8 @@ export default function Odds({ user, onLogout }) {
 
         {!loading && !error && games.length === 0 && (
           <div className="text-center py-24">
-            <p className="text-lg font-semibold mb-2" style={{ color: '#1A1814' }}>No odds available</p>
-            <p className="text-sm" style={{ color: '#8A8272' }}>Check back soon for upcoming games.</p>
+            <p className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No odds available</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Check back soon for upcoming games.</p>
           </div>
         )}
 
@@ -267,25 +271,25 @@ export default function Odds({ user, onLogout }) {
                 <div
                   key={index}
                   className="rounded-2xl p-6 md:p-8"
-                  style={{ background: 'rgba(253,250,245,0.7)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(26,24,20,0.08)' }}
+                  style={{ background: 'rgba(var(--bg-surface-rgb), 0.7)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}
                 >
-                  <div className="flex items-center justify-between mb-6 pb-6 flex-wrap gap-4" style={{ borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
+                  <div className="flex items-center justify-between mb-6 pb-6 flex-wrap gap-4" style={{ borderBottom: '1px solid rgba(var(--text-primary-rgb), 0.08)' }}>
                     <div className="flex items-center gap-4 flex-1 min-w-[160px]">
                       <img
                         src={TEAM_LOGOS[game.away_team] || FALLBACK_LOGO}
                         onError={(e) => { e.target.src = FALLBACK_LOGO; }}
                         className="h-14 w-14 rounded-xl p-2"
-                        style={{ background: 'rgba(26,24,20,0.04)', border: '1px solid rgba(26,24,20,0.06)' }}
+                        style={{ background: 'rgba(var(--text-primary-rgb), 0.04)', border: '1px solid rgba(var(--text-primary-rgb), 0.06)' }}
                         alt={game.away_team}
                       />
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#8A8272' }}>Away</p>
-                        <h3 className="text-lg font-bold" style={{ color: '#1A1814' }}>{game.away_team}</h3>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Away</p>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.away_team}</h3>
                       </div>
                     </div>
 
-                    <div className="px-4 py-2 rounded-xl" style={{ background: 'rgba(26,24,20,0.04)' }}>
-                      <span className="text-sm font-semibold" style={{ color: '#8A8272' }}>VS</span>
+                    <div className="px-4 py-2 rounded-xl" style={{ background: 'rgba(var(--text-primary-rgb), 0.04)' }}>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>VS</span>
                     </div>
 
                     <div className="flex items-center gap-4 flex-row-reverse flex-1 min-w-[160px] text-right">
@@ -293,12 +297,12 @@ export default function Odds({ user, onLogout }) {
                         src={TEAM_LOGOS[game.home_team] || FALLBACK_LOGO}
                         onError={(e) => { e.target.src = FALLBACK_LOGO; }}
                         className="h-14 w-14 rounded-xl p-2"
-                        style={{ background: 'rgba(26,24,20,0.04)', border: '1px solid rgba(26,24,20,0.06)' }}
+                        style={{ background: 'rgba(var(--text-primary-rgb), 0.04)', border: '1px solid rgba(var(--text-primary-rgb), 0.06)' }}
                         alt={game.home_team}
                       />
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#8A8272' }}>Home</p>
-                        <h3 className="text-lg font-bold" style={{ color: '#1A1814' }}>{game.home_team}</h3>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Home</p>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{game.home_team}</h3>
                       </div>
                     </div>
                   </div>
@@ -326,8 +330,8 @@ export default function Odds({ user, onLogout }) {
                         prob: calcWinProb(line.price),
                       }) },
                     ].map(({ key, title, market, render }) => market && (
-                      <div key={key} className="rounded-xl p-5" style={{ background: 'rgba(26,24,20,0.03)', border: '1px solid rgba(26,24,20,0.06)' }}>
-                        <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#8A8272' }}>{title}</p>
+                      <div key={key} className="rounded-xl p-5" style={{ background: 'rgba(var(--text-primary-rgb), 0.03)', border: '1px solid rgba(var(--text-primary-rgb), 0.06)' }}>
+                        <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>{title}</p>
                         {market.outcomes.map((outcome, idx) => {
                           const o = render(outcome);
                           return (
@@ -335,17 +339,17 @@ export default function Odds({ user, onLogout }) {
                               key={idx}
                               onClick={() => handleBetClick(o.bet)}
                               className="p-4 rounded-lg mb-2 last:mb-0 cursor-pointer transition-colors hover:opacity-80"
-                              style={{ background: 'rgba(253,250,245,0.9)', border: '1px solid rgba(26,24,20,0.06)' }}
+                              style={{ background: 'rgba(var(--bg-surface-rgb), 0.9)', border: '1px solid rgba(var(--text-primary-rgb), 0.06)' }}
                             >
                               <div className="flex justify-between items-center mb-2">
-                                <span className="font-semibold text-sm" style={{ color: '#1A1814' }}>{o.label}</span>
-                                <span className="font-bold" style={{ color: '#2D6A2D' }}>
-                                  {o.big} {o.sub && <span className="text-xs font-normal" style={{ color: '#8A8272' }}>{o.sub}</span>}
+                                <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{o.label}</span>
+                                <span className="font-bold" style={{ color: 'var(--accent)' }}>
+                                  {o.big} {o.sub && <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>{o.sub}</span>}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between text-xs">
-                                <span style={{ color: '#A89E8E' }}>Win probability</span>
-                                <span className="font-semibold" style={{ color: '#2D6A2D' }}>{o.prob}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>Win probability</span>
+                                <span className="font-semibold" style={{ color: 'var(--accent)' }}>{o.prob}</span>
                               </div>
                             </div>
                           );
@@ -361,38 +365,38 @@ export default function Odds({ user, onLogout }) {
       </div>
 
       {showBetSlip && selectedBet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(26,24,20,0.5)', backdropFilter: 'blur(4px)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(var(--text-primary-rgb), 0.5)', backdropFilter: 'blur(4px)' }}>
           <div
             className="rounded-2xl p-8 max-w-lg w-full"
-            style={{ background: 'rgba(253,250,245,0.95)', backdropFilter: 'blur(20px)', border: '1px solid rgba(26,24,20,0.1)', boxShadow: '0 24px 60px rgba(26,24,20,0.25)' }}
+            style={{ background: 'rgba(var(--bg-surface-rgb), 0.95)', backdropFilter: 'blur(20px)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', boxShadow: '0 24px 60px rgba(var(--text-primary-rgb), 0.25)' }}
           >
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="dz-heading text-2xl font-bold mb-1" style={{ color: '#1A1814' }}>Place your bet</h2>
-                <p className="text-sm" style={{ color: '#8A8272' }}>Review and confirm your wager</p>
+                <h2 className="dz-heading text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Place your bet</h2>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Review and confirm your wager</p>
               </div>
               <button onClick={() => { setShowBetSlip(false); setSelectedBet(null); }} className="hover:opacity-70 transition-opacity">
-                <X size={22} style={{ color: '#8A8272' }} />
+                <X size={22} style={{ color: 'var(--text-muted)' }} />
               </button>
             </div>
 
-            <div className="rounded-xl p-5 mb-6" style={{ background: 'rgba(26,24,20,0.03)', border: '1px solid rgba(26,24,20,0.06)' }}>
+            <div className="rounded-xl p-5 mb-6" style={{ background: 'rgba(var(--text-primary-rgb), 0.03)', border: '1px solid rgba(var(--text-primary-rgb), 0.06)' }}>
               <div className="text-center mb-4">
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#A89E8E' }}>Matchup</p>
-                <p className="text-base font-semibold" style={{ color: '#1A1814' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Matchup</p>
+                <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {selectedBet.awayTeam} @ {selectedBet.homeTeam}
                 </p>
               </div>
-              <div className="h-px my-4" style={{ background: 'rgba(26,24,20,0.08)' }} />
+              <div className="h-px my-4" style={{ background: 'rgba(var(--text-primary-rgb), 0.08)' }} />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#A89E8E' }}>Bet type</p>
-                  <p className="text-sm font-semibold" style={{ color: '#1A1814' }}>{selectedBet.betType}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#8A8272' }}>{selectedBet.teamName}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Bet type</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedBet.betType}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{selectedBet.teamName}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#A89E8E' }}>Odds</p>
-                  <p className="text-xl font-bold" style={{ color: '#2D6A2D' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Odds</p>
+                  <p className="text-xl font-bold" style={{ color: 'var(--accent)' }}>
                     {selectedBet.odds > 0 ? '+' : ''}{selectedBet.odds}
                   </p>
                 </div>
@@ -400,15 +404,15 @@ export default function Odds({ user, onLogout }) {
             </div>
 
             <div className="mb-6">
-              <label className="text-sm font-semibold mb-2 block" style={{ color: '#1A1814' }}>Bet amount</label>
+              <label className="text-sm font-semibold mb-2 block" style={{ color: 'var(--text-primary)' }}>Bet amount</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold" style={{ color: '#2D6A2D' }}>$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold" style={{ color: 'var(--accent)' }}>$</span>
                 <input
                   type="number"
                   value={betAmount}
                   onChange={(e) => setBetAmount(parseFloat(e.target.value) || 0)}
                   className="w-full rounded-xl pl-9 pr-4 py-3.5 text-lg font-semibold outline-none"
-                  style={{ background: 'rgba(253,250,245,0.9)', border: '1px solid rgba(26,24,20,0.1)', color: '#1A1814' }}
+                  style={{ background: 'rgba(var(--bg-surface-rgb), 0.9)', border: '1px solid rgba(var(--text-primary-rgb), 0.1)', color: 'var(--text-primary)' }}
                   min="1"
                   step="1"
                 />
@@ -419,7 +423,7 @@ export default function Odds({ user, onLogout }) {
                     key={amount}
                     onClick={() => setBetAmount(amount)}
                     className="flex-1 rounded-lg py-2 text-sm font-semibold transition-colors"
-                    style={{ background: '#EBF5EB', color: '#2D6A2D', border: '1px solid rgba(45,106,45,0.2)' }}
+                    style={{ background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}
                   >
                     ${amount}
                   </button>
@@ -427,17 +431,17 @@ export default function Odds({ user, onLogout }) {
               </div>
             </div>
 
-            <div className="rounded-xl p-5 mb-6" style={{ background: '#EBF5EB', border: '1px solid rgba(45,106,45,0.25)' }}>
+            <div className="rounded-xl p-5 mb-6" style={{ background: 'var(--accent-light)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#4A7A4A' }}>To win</p>
-                  <p className="text-3xl font-bold" style={{ color: '#2D6A2D' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--accent-text)' }}>To win</p>
+                  <p className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
                     ${(calculatePayout(selectedBet.odds, betAmount) - betAmount).toFixed(2)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#4A7A4A' }}>Total payout</p>
-                  <p className="text-lg font-semibold" style={{ color: '#1A1814' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--accent-text)' }}>Total payout</p>
+                  <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                     ${calculatePayout(selectedBet.odds, betAmount).toFixed(2)}
                   </p>
                 </div>
@@ -448,7 +452,7 @@ export default function Odds({ user, onLogout }) {
               <button
                 onClick={() => { setShowBetSlip(false); setSelectedBet(null); }}
                 className="flex-1 py-3.5 rounded-xl text-sm font-semibold transition-colors"
-                style={{ background: 'rgba(26,24,20,0.06)', color: '#1A1814' }}
+                style={{ background: 'rgba(var(--text-primary-rgb), 0.06)', color: 'var(--text-primary)' }}
               >
                 Cancel
               </button>
@@ -456,13 +460,13 @@ export default function Odds({ user, onLogout }) {
                 onClick={placeBet}
                 disabled={betAmount <= 0 || isPlacingBet}
                 className="flex-1 py-3.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
-                style={{ background: '#1A1814', color: '#FDFAF5' }}
+                style={{ background: 'var(--text-primary)', color: 'var(--text-inverse)' }}
               >
                 {isPlacingBet ? 'Placing…' : 'Place bet'}
               </button>
             </div>
 
-            <p className="text-xs text-center mt-4" style={{ color: '#A89E8E' }}>
+            <p className="text-xs text-center mt-4" style={{ color: 'var(--text-muted)' }}>
               Must be 21+ and in eligible state. Gambling problem? Call 1-800-GAMBLER
             </p>
           </div>

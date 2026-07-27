@@ -1,64 +1,233 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+// `motion` is used throughout via JSX tags like <motion.div>, which this
+// project's no-unused-vars config (no eslint-plugin-react) doesn't track.
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion';
 import axios from 'axios';
-import { Sparkles, UserPlus, LineChart, Check, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { ArrowRight, ArrowDown, Menu, X } from 'lucide-react';
 import Logo from './components/Logo';
+import { useMotionPresets } from './lib/motion';
 
-const fadeUp = {
-  initial: { opacity: 0, y: 28 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-80px' },
-  transition: { duration: 0.6, ease: 'easeOut' },
-};
+// This page intentionally does not use the app-wide --bg-base/--text-primary
+// theme variables or the shared AppNav/DynamicIsland/LiquidGlassCard
+// components. The rest of the app keeps its light/dark toggle and glass
+// styling untouched; the homepage commits to its own fixed near-black
+// editorial palette, independent of that toggle, matching hut8.com's
+// restrained hero treatment.
+const INK = '#08090A';
+const PAPER = '#F5F5F7';
+const ACCENT = '#4FCE7C';
+const HAIRLINE = 'rgba(245,245,247,0.08)';
+
+const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4FCE7C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08090A]';
 
 const NAV_LINKS = [
-  { label: 'Home', to: '/' },
   { label: 'Players', to: '/player-search' },
   { label: 'Draft', to: '/draft' },
   { label: 'Odds', to: '/odds' },
-  { label: 'Authors', to: '/authors' },
   { label: 'Bets', to: '/my-bets' },
+  { label: 'Authors', to: '/authors' },
 ];
 
 const STEPS = [
   {
-    icon: UserPlus,
     title: 'Create your account',
     description: 'Sign up and choose your mode — head-to-head PvP or against the AI.',
   },
   {
-    icon: Sparkles,
     title: 'Draft with AI insights',
-    description: 'Your AI Scout recommends picks in real time based on your roster needs.',
+    description: "Your AI Scout recommends picks in real time, tailored to your roster's needs.",
   },
   {
-    icon: LineChart,
     title: 'Track odds & bets',
     description: 'Follow live game odds and manage your bet history, all in one place.',
   },
 ];
 
-const FEATURES = [
+const CAPABILITIES = [
   {
-    icon: '🏆',
     title: 'Real-time rankings',
     description: 'Live player rankings updated every minute with expert projections and injury reports.',
+    to: '/player-search',
+    cta: 'Search players',
   },
   {
-    icon: '📊',
-    title: 'Advanced analytics',
-    description: 'Deep dive into player stats, trends, and matchup analysis powered by machine learning.',
-  },
-  {
-    icon: '🧠',
     title: 'AI draft assistant',
-    description: 'Get personalized recommendations based on your league settings and draft position.',
+    description: 'Personalized pick recommendations based on your league settings and draft position.',
+    to: '/draft',
+    cta: 'Start a draft',
+  },
+  {
+    title: 'Live odds & betting',
+    description: 'Real-time spreads, moneylines, and totals — place bets and track your balance.',
+    to: '/odds',
+    cta: 'View odds',
   },
 ];
 
+// Counts up from 0 to the numeric portion of `value` once it scrolls into
+// view; non-numeric values (e.g. "24/7") pass through unchanged. Skips the
+// animation entirely under prefers-reduced-motion.
+function AnimatedNumber({ value, reduceMotion }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  // null = not animating (yet); render the static `value` until the count-up
+  // effect below starts producing frames, so there's no synchronous setState
+  // in the effect body itself — only inside the async rAF callback.
+  const [display, setDisplay] = useState(null);
+
+  useEffect(() => {
+    if (!inView || reduceMotion) return;
+    const match = value.match(/[\d,]+/);
+    if (!match) return;
+    const target = parseInt(match[0].replace(/,/g, ''), 10);
+    const prefix = value.slice(0, match.index);
+    const suffix = value.slice(match.index + match[0].length);
+    const duration = 1100;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(`${prefix}${Math.round(target * eased).toLocaleString()}${suffix}`);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, value, reduceMotion]);
+
+  return <span ref={ref}>{display ?? value}</span>;
+}
+
+// Scroll-linked opacity/parallax for the hero's background motif: fades from
+// `maxOpacity` to 0 as the hero scrolls past (progress 0 → 1 over the hero's
+// own height), rather than fading in/out like the sections below it since
+// it's already visible on load.
+function useHeroMotif(ref, reduceMotion, maxOpacity = 0.1) {
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+  const opacity = useTransform(scrollYProgress, [0, 1], [maxOpacity, 0]);
+  const y = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [0, 70]);
+  return { opacity, y };
+}
+
+// Scroll-linked opacity/parallax for a section's background motif: fades in
+// as the section enters the viewport, holds, then fades out as it leaves —
+// this is what gives each section a different silhouette "handoff" rather
+// than a single static background image behind every section.
+function useSectionMotif(ref, reduceMotion, maxOpacity = 0.1) {
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const opacity = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0, maxOpacity, maxOpacity, 0]);
+  const y = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [50, -50]);
+  return { opacity, y };
+}
+
+// Concentric ellipses read as an abstract stadium bowl seen at an angle —
+// used to bookend the hero and closing CTA rather than a literal stadium
+// photo (avoids both copyright risk and clashing with the flat palette).
+function StadiumRings({ className }) {
+  return (
+    <svg viewBox="0 0 600 600" fill="none" className={className} aria-hidden="true">
+      <ellipse cx="300" cy="300" rx="290" ry="150" stroke={PAPER} strokeWidth="1" />
+      <ellipse cx="300" cy="300" rx="225" ry="110" stroke={PAPER} strokeWidth="1" />
+      <ellipse cx="300" cy="300" rx="160" ry="72" stroke={PAPER} strokeWidth="1" />
+      <ellipse cx="300" cy="300" rx="95" ry="36" stroke={PAPER} strokeWidth="1" />
+    </svg>
+  );
+}
+
+// An elongated field oval (with a center line + yard-tick marks) cupped by
+// partial bowl arcs above it — reads as "football field seen from the
+// stands" rather than generic concentric rings, while staying abstract
+// line-art instead of a literal stadium photo.
+function StadiumField({ className }) {
+  return (
+    <svg viewBox="0 0 720 420" fill="none" className={className} aria-hidden="true">
+      <defs>
+        <clipPath id="dz-field-clip">
+          <ellipse cx="360" cy="230" rx="255" ry="88" />
+        </clipPath>
+      </defs>
+
+      {/* bowl tiers — open arcs, not closed rings, so it reads as seating
+          rising behind the field rather than a target/bullseye */}
+      <path d="M20 230 A 340 200 0 0 1 700 230" stroke={PAPER} strokeWidth="1" />
+      <path d="M85 230 A 275 155 0 0 1 635 230" stroke={PAPER} strokeWidth="1" />
+
+      {/* field outline */}
+      <ellipse cx="360" cy="230" rx="255" ry="88" stroke={PAPER} strokeWidth="1.4" />
+
+      {/* yard-line ticks + bolder 50-yard center line, clipped to the field */}
+      <g clipPath="url(#dz-field-clip)" stroke={PAPER}>
+        <line x1="160" y1="142" x2="160" y2="318" strokeWidth="1" />
+        <line x1="240" y1="142" x2="240" y2="318" strokeWidth="1" />
+        <line x1="360" y1="142" x2="360" y2="318" strokeWidth="1.6" />
+        <line x1="480" y1="142" x2="480" y2="318" strokeWidth="1" />
+        <line x1="560" y1="142" x2="560" y2="318" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
+
+// Goalpost uprights + a dashed trajectory arc — an abstract nod to "the
+// path from sign-up to game day" rather than literal stadium photography.
+function GoalpostArc({ className }) {
+  return (
+    <svg viewBox="0 0 400 420" fill="none" className={className} aria-hidden="true">
+      <path d="M70 400 V110" stroke={PAPER} strokeWidth="1" />
+      <path d="M330 400 V110" stroke={PAPER} strokeWidth="1" />
+      <path d="M70 110 H330" stroke={PAPER} strokeWidth="1" />
+      <path d="M20 400 Q200 10 380 400" stroke={PAPER} strokeWidth="1" strokeDasharray="3 10" />
+    </svg>
+  );
+}
+
+// Plain concentric circles (deliberately distinct from the hero's ellipses)
+// reading as a target/reticle — pairs with the "precision" pitch of the
+// capabilities list.
+function TargetRings({ className }) {
+  return (
+    <svg viewBox="0 0 400 400" fill="none" className={className} aria-hidden="true">
+      <circle cx="200" cy="200" r="185" stroke={PAPER} strokeWidth="1" />
+      <circle cx="200" cy="200" r="135" stroke={PAPER} strokeWidth="1" />
+      <circle cx="200" cy="200" r="85" stroke={PAPER} strokeWidth="1" />
+      <circle cx="200" cy="200" r="35" stroke={PAPER} strokeWidth="1" />
+    </svg>
+  );
+}
+
+// Evenly spaced hairlines standing in for yard markers, faded at the top/bottom
+// edges via mask so they read as texture rather than a hard-edged pattern.
+function YardLines({ className }) {
+  return (
+    <div
+      className={className}
+      aria-hidden="true"
+      style={{
+        backgroundImage: `repeating-linear-gradient(180deg, ${PAPER} 0px, ${PAPER} 1px, transparent 1px, transparent 64px)`,
+        maskImage: 'linear-gradient(180deg, transparent, black 25%, black 75%, transparent)',
+        WebkitMaskImage: 'linear-gradient(180deg, transparent, black 25%, black 75%, transparent)',
+      }}
+    />
+  );
+}
+
 export default function Home({ user, onLogout }) {
   const [liveStats, setLiveStats] = useState({ totalDrafts: null, completed: null });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { fadeUp, fadeUpSm, prefersReducedMotion } = useMotionPresets();
+
+  const heroRef = useRef(null);
+  const statsRef = useRef(null);
+  const howRef = useRef(null);
+  const capRef = useRef(null);
+  const ctaRef = useRef(null);
+
+  const heroMotif = useHeroMotif(heroRef, prefersReducedMotion, 0.09);
+  const statsMotif = useSectionMotif(statsRef, prefersReducedMotion, 0.07);
+  const howMotif = useSectionMotif(howRef, prefersReducedMotion, 0.08);
+  const capMotif = useSectionMotif(capRef, prefersReducedMotion, 0.08);
+  const ctaMotif = useSectionMotif(ctaRef, prefersReducedMotion, 0.1);
 
   useEffect(() => {
     axios
@@ -74,411 +243,354 @@ export default function Home({ user, onLogout }) {
   }, []);
 
   const STATS = [
-    { value: '1,000+', label: 'NFL players' },
-    { value: liveStats.totalDrafts !== null ? `${liveStats.totalDrafts}` : '—', label: 'Drafts run' },
-    { value: liveStats.completed !== null ? `${liveStats.completed}` : '—', label: 'Completed games' },
+    { value: '1,000+', label: 'NFL players tracked' },
+    { value: liveStats.totalDrafts !== null ? String(liveStats.totalDrafts) : '—', label: 'Drafts run to date' },
+    { value: liveStats.completed !== null ? String(liveStats.completed) : '—', label: 'Games completed' },
+    { value: '24/7', label: 'AI scout availability' },
   ];
 
-  const navLinks = user?.role === 'admin' ? [...NAV_LINKS, { label: 'Admin', to: '/admin' }] : NAV_LINKS;
-
   return (
-    <div className="w-full" style={{ background: '#F5F2EC', fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full" style={{ background: INK, color: PAPER, fontFamily: "'Inter', sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
         .dz-wordmark { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
-        .dz-heading { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; }
+        .dz-heading { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.03em; }
+        @keyframes dz-bounce { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(8px); opacity: 1; } }
+        .dz-scrollcue { animation: dz-bounce 2s ease-in-out infinite; }
       `}</style>
 
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50" style={{ background: 'rgba(245,242,236,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-3">
-            <Logo size={36} />
-            <span className="dz-wordmark text-2xl" style={{ color: '#1A1814' }}>
-              DRAFT<span style={{ color: '#2D6A2D' }}>ZONE</span>
+      {/* NAV — bespoke to this page (not the shared AppNav) so the hero can
+          run full-bleed with a translucent overlay rather than pushing
+          content below a fixed-height bar. */}
+      <header
+        className="fixed top-0 inset-x-0 z-50"
+        style={{ background: 'rgba(8,9,10,0.72)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: `1px solid ${HAIRLINE}` }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+          <Link to="/" className={`flex items-center gap-3 rounded-lg ${FOCUS_RING}`} onClick={() => setMobileOpen(false)}>
+            <Logo size={30} />
+            <span className="dz-wordmark text-lg tracking-wide" style={{ color: PAPER }}>
+              DRAFT<span style={{ color: ACCENT }}>ZONE</span>
             </span>
           </Link>
 
-          <div className="hidden md:flex gap-8 text-sm font-medium" style={{ color: '#6B6456' }}>
-            {navLinks.map((item) => (
-              <Link key={item.label} to={item.to} className="hover:opacity-70 transition-opacity" style={{ color: '#6B6456' }}>
-                {item.label}
+          <nav className="hidden md:flex items-center gap-8 text-sm">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.label}
+                to={l.to}
+                className={`hover:opacity-100 transition-opacity rounded ${FOCUS_RING}`}
+                style={{ color: 'rgba(245,245,247,0.6)' }}
+              >
+                {l.label}
               </Link>
             ))}
-          </div>
+          </nav>
 
-          {user ? (
-            <div className="hidden md:flex items-center gap-4">
-              <span className="text-sm" style={{ color: '#6B6456' }}>{user.name}</span>
+          <div className="flex items-center gap-3">
+            {user ? (
               <button
                 onClick={onLogout}
-                className="px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
-                style={{ background: '#1A1814', color: '#FDFAF5' }}
+                className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
+                style={{ color: PAPER, borderColor: HAIRLINE }}
               >
                 Log out
               </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
-              style={{ background: '#1A1814', color: '#FDFAF5' }}
+            ) : (
+              <Link
+                to="/login"
+                className={`hidden md:inline-block px-5 py-2.5 rounded-full text-sm font-medium border hover:bg-white/5 transition-colors ${FOCUS_RING}`}
+                style={{ color: PAPER, borderColor: HAIRLINE }}
+              >
+                Log in
+              </Link>
+            )}
+
+            <button
+              type="button"
+              className={`md:hidden p-2 rounded-lg ${FOCUS_RING}`}
+              style={{ color: PAPER }}
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             >
-              Get Started
-            </Link>
-          )}
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <div className="relative text-center px-4 pt-16 pb-0 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 text-xs font-medium mb-5" style={{ color: '#6B6456' }}>
-          <Sparkles size={14} style={{ color: '#2D6A2D' }} />
-          <span>AI-powered draft assistant</span>
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
 
-        <h1 className="dz-heading text-5xl md:text-6xl font-bold leading-[1.1] mb-5" style={{ color: '#1A1814' }}>
-          The smartest way<br />to draft your team
-        </h1>
-
-        <p className="text-base max-w-md mx-auto mb-8 leading-relaxed" style={{ color: '#6B6456' }}>
-          Real-time rankings and an AI scout that knows your roster, pick by pick.
-        </p>
-
-        <div className="flex gap-3 justify-center items-center mb-2">
-          <Link
-            to="/player-search"
-            className="px-7 py-3.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
-            style={{ background: '#1A1814', color: '#FDFAF5' }}
-          >
-            Start Drafting
-          </Link>
-          <a
-            href="#features"
-            className="px-4 py-3.5 text-sm font-medium underline decoration-1 underline-offset-4 hover:opacity-70 transition-opacity"
-            style={{ color: '#1A1814', textDecorationColor: 'rgba(26,24,20,0.3)' }}
-          >
-            Explore Features
-          </a>
-        </div>
-      </div>
-
-      {/* FLOATING PRODUCT PREVIEW */}
-      <div className="relative" style={{ height: 210, marginTop: 16 }}>
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #F5F2EC 0%, #E4E9DD 60%, #CFE0C2 100%)' }} />
-        <div
-          className="absolute left-1/2 w-full max-w-2xl px-4"
-          style={{ transform: 'translateX(-50%)', bottom: -110, zIndex: 20 }}
-        >
-          <div
-            className="rounded-2xl p-4"
-            style={{
-              background: 'rgba(253,250,245,0.72)',
-              backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)',
-              border: '1px solid rgba(26,24,20,0.1)',
-              boxShadow: '0 20px 50px rgba(26,24,20,0.16), inset 0 1px 0 rgba(255,255,255,0.6)',
-            }}
-          >
-            <div className="flex gap-4 mb-4">
-              <div className="flex-[1.3]">
-                <div className="text-[10px] font-semibold mb-2 tracking-wider" style={{ color: '#A89E8E' }}>
-                  ON THE CLOCK
-                </div>
-                {[
-                  { name: 'Josh Allen', pos: 'QB', posColor: '#2D6A2D', posBg: '#EBF5EB' },
-                  { name: 'Bijan Robinson', pos: 'RB', posColor: '#389E0D', posBg: '#F6FFED' },
-                ].map((p) => (
-                  <div
-                    key={p.name}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg mb-1.5"
-                    style={{ background: 'rgba(253,250,245,0.9)', border: '1px solid rgba(26,24,20,0.06)' }}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="md:hidden overflow-hidden"
+              style={{ borderTop: `1px solid ${HAIRLINE}` }}
+            >
+              <div className="px-6 py-4 flex flex-col gap-1">
+                {NAV_LINKS.map((l) => (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    onClick={() => setMobileOpen(false)}
+                    className={`py-2.5 text-sm font-medium rounded-lg ${FOCUS_RING}`}
+                    style={{ color: 'rgba(245,245,247,0.7)' }}
                   >
-                    <div className="w-6 h-6 rounded-full" style={{ background: '#E8E2D5' }} />
-                    <div className="flex-1 text-xs" style={{ color: '#1A1814' }}>{p.name}</div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ color: p.posColor, background: p.posBg }}>
-                      {p.pos}
-                    </span>
-                  </div>
+                    {l.label}
+                  </Link>
                 ))}
-              </div>
-              <div
-                className="flex-1 rounded-lg p-2.5"
-                style={{ background: 'rgba(253,250,245,0.9)', border: '1px solid rgba(26,24,20,0.06)' }}
-              >
-                <div className="text-[10px] font-semibold mb-1.5 tracking-wider" style={{ color: '#A89E8E' }}>
-                  AI SCOUT
+                <div className="pt-3 mt-2" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+                  {user ? (
+                    <button
+                      onClick={() => { setMobileOpen(false); onLogout(); }}
+                      className={`w-full px-5 py-2.5 rounded-full text-sm font-medium text-center border ${FOCUS_RING}`}
+                      style={{ color: PAPER, borderColor: HAIRLINE }}
+                    >
+                      Log out
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className={`block w-full px-5 py-2.5 rounded-full text-sm font-medium text-center border ${FOCUS_RING}`}
+                      style={{ color: PAPER, borderColor: HAIRLINE }}
+                    >
+                      Log in
+                    </Link>
+                  )}
                 </div>
-                <div className="text-xs leading-relaxed" style={{ color: '#1A1814' }}>
-                  Take the RB here — your WR corps is already strong through round 2.
-                </div>
               </div>
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
 
-            <div className="flex" style={{ borderTop: '1px solid rgba(26,24,20,0.08)', paddingTop: 12 }}>
-              {STATS.map((stat, i) => (
-                <div
-                  key={stat.label}
-                  className="flex-1 text-center"
-                  style={i > 0 ? { borderLeft: '1px solid rgba(26,24,20,0.08)' } : undefined}
-                >
-                  <div className="dz-heading text-lg font-bold" style={{ color: '#2D6A2D' }}>{stat.value}</div>
-                  <div className="text-[10px]" style={{ color: '#8A8272' }}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* HERO — full-bleed, immersive; content loads in on mount rather
+          than on scroll since it's the first thing visible. */}
+      <section ref={heroRef} className="relative flex flex-col justify-center overflow-hidden px-6 pt-32 pb-20" style={{ minHeight: '100svh' }}>
+        <div
+          className="absolute pointer-events-none rounded-full"
+          style={{ top: '15%', right: '8%', width: 480, height: 480, background: ACCENT, opacity: 0.1, filter: 'blur(140px)' }}
+        />
+        <div className="absolute pointer-events-none" style={{ top: '54%', right: '-14%', width: 'min(65vw, 860px)', transform: 'translateY(-50%)' }}>
+          <motion.div style={{ opacity: heroMotif.opacity, y: heroMotif.y }}>
+            <StadiumField className="w-full h-auto" />
+          </motion.div>
         </div>
-      </div>
 
-      {/* FEATURES */}
-      <section id="features" className="relative pt-40 pb-28 px-6 overflow-hidden" style={{ background: '#CFE0C2' }}>
-        <div className="absolute rounded-full pointer-events-none" style={{ top: -60, left: '8%', width: 320, height: 320, background: '#2D6A2D', opacity: 0.16, filter: 'blur(90px)' }} />
-        <div className="absolute rounded-full pointer-events-none" style={{ bottom: -80, right: '10%', width: 300, height: 300, background: '#7EC8C8', opacity: 0.18, filter: 'blur(90px)' }} />
-
-        <motion.div {...fadeUp} className="relative max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#2D6A2D' }}>
-              Why DraftZone
-            </div>
-            <h2 className="dz-heading text-4xl md:text-5xl font-bold mb-4" style={{ color: '#1A1814' }}>
-              Everything you need to win
-            </h2>
-            <p className="text-base max-w-xl mx-auto" style={{ color: '#4A4638' }}>
-              Powerful tools and insights that give you the competitive edge.
-            </p>
+        <motion.div
+          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.01 : 0.8, ease: 'easeOut' }}
+          className="relative max-w-5xl"
+        >
+          <div className="flex items-center gap-2 text-xs font-medium mb-8 uppercase tracking-widest" style={{ color: 'rgba(245,245,247,0.55)' }}>
+            <span className={`h-1.5 w-1.5 rounded-full ${prefersReducedMotion ? '' : 'animate-pulse'}`} style={{ background: ACCENT }} aria-hidden="true" />
+            AI scout · Live odds · Real NFL players
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map((feature) => (
-              <div
-                key={feature.title}
-                className="p-8 rounded-2xl"
-                style={{
-                  background: 'rgba(253,250,245,0.55)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(26,24,20,0.1)',
-                  boxShadow: '0 12px 32px rgba(26,24,20,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
-                }}
-              >
-                <div className="text-4xl mb-5">{feature.icon}</div>
-                <h3 className="dz-heading text-xl font-semibold mb-3" style={{ color: '#1A1814' }}>
-                  {feature.title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#4A4638' }}>
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+          <h1
+            className="dz-heading font-extrabold uppercase mb-8"
+            style={{ fontSize: 'clamp(3rem, 9vw, 8rem)', lineHeight: 0.96, color: PAPER }}
+          >
+            Draft smarter.
+            <br />
+            Win faster.
+          </h1>
+
+          <p className="text-base md:text-lg max-w-xl mb-10 leading-relaxed" style={{ color: 'rgba(245,245,247,0.62)' }}>
+            Real-time player rankings, an AI scout that knows your roster, and live odds tracking —
+            everything you need to dominate your league, in one place.
+          </p>
+
+          <div className="flex flex-wrap gap-4 items-center">
+            <Link
+              to="/player-search"
+              className={`inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ${FOCUS_RING}`}
+              style={{ background: PAPER, color: INK }}
+            >
+              Start Drafting <ArrowRight size={16} />
+            </Link>
+            <a
+              href="#how-it-works"
+              className={`px-4 py-3.5 text-sm font-medium underline decoration-1 underline-offset-4 hover:opacity-70 transition-opacity rounded ${FOCUS_RING}`}
+              style={{ color: PAPER, textDecorationColor: 'rgba(245,245,247,0.3)' }}
+            >
+              How it works
+            </a>
           </div>
         </motion.div>
+
+        {!prefersReducedMotion && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 dz-scrollcue" aria-hidden="true">
+            <ArrowDown size={20} style={{ color: 'rgba(245,245,247,0.5)' }} />
+          </div>
+        )}
+      </section>
+
+      {/* STATS — big number, small label, no cards. */}
+      <section ref={statsRef} className="relative overflow-hidden py-24 md:py-28 px-6" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <motion.div style={{ opacity: statsMotif.opacity, y: statsMotif.y }} className="absolute inset-0 pointer-events-none">
+          <YardLines className="absolute inset-0" />
+        </motion.div>
+        <div className="relative max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-14">
+          {STATS.map((stat, i) => (
+            <motion.div key={stat.label} {...fadeUpSm(i * 0.08)}>
+              <div className="dz-heading font-bold tabular-nums" style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)', color: PAPER }}>
+                <AnimatedNumber value={stat.value} reduceMotion={prefersReducedMotion} />
+              </div>
+              <div className="text-xs uppercase tracking-widest mt-3" style={{ color: 'rgba(245,245,247,0.45)' }}>
+                {stat.label}
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="relative py-28 px-6" style={{ background: '#F5F2EC' }}>
-        <motion.div {...fadeUp} className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#2D6A2D' }}>
-              How it works
-            </div>
-            <h2 className="dz-heading text-4xl md:text-5xl font-bold" style={{ color: '#1A1814' }}>
-              From sign-up to game day
-            </h2>
-          </div>
+      <section ref={howRef} id="how-it-works" className="relative overflow-hidden py-24 md:py-32 px-6 scroll-mt-24" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="absolute pointer-events-none" style={{ top: '50%', left: '-10%', width: 'min(50vw, 460px)', transform: 'translateY(-50%)' }}>
+          <motion.div style={{ opacity: howMotif.opacity, y: howMotif.y }}>
+            <GoalpostArc className="w-full h-auto" />
+          </motion.div>
+        </div>
+        <div className="relative max-w-4xl mx-auto">
+          <motion.h2
+            {...fadeUp}
+            className="dz-heading font-bold mb-16 md:mb-20"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', lineHeight: 1.05, color: PAPER }}
+          >
+            From sign-up to game day.
+          </motion.h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {STEPS.map((step, i) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.title} className="text-center">
-                  <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-                    style={{ background: '#1A1814' }}
-                  >
-                    <Icon size={22} style={{ color: '#3FCB6E' }} />
-                  </div>
-                  <div className="text-xs font-semibold mb-2" style={{ color: '#A89E8E' }}>STEP {i + 1}</div>
-                  <h3 className="dz-heading text-lg font-semibold mb-2" style={{ color: '#1A1814' }}>
+          <div>
+            {STEPS.map((step, i) => (
+              <motion.div
+                key={step.title}
+                {...fadeUpSm(i * 0.1)}
+                className="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-10 py-9"
+                style={{ borderTop: i > 0 ? `1px solid ${HAIRLINE}` : undefined }}
+              >
+                <span className="dz-heading font-bold flex-shrink-0" style={{ fontSize: '2.25rem', color: 'rgba(245,245,247,0.18)', minWidth: '3.5rem' }}>
+                  0{i + 1}
+                </span>
+                <div>
+                  <h3 className="dz-heading text-xl font-semibold mb-2" style={{ color: PAPER }}>
                     {step.title}
                   </h3>
-                  <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#6B6456' }}>
+                  <p className="text-sm md:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(245,245,247,0.55)' }}>
                     {step.description}
                   </p>
                 </div>
-              );
-            })}
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* PRODUCT SHOWCASE — DRAFT SIMULATOR */}
-      <section className="relative py-24 px-6 overflow-hidden" style={{ background: '#CFE0C2' }}>
-        <motion.div {...fadeUp} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      {/* CAPABILITIES */}
+      <section ref={capRef} id="capabilities" className="relative overflow-hidden py-24 md:py-32 px-6 scroll-mt-24" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="absolute pointer-events-none" style={{ top: '50%', right: '-8%', width: 'min(45vw, 420px)', transform: 'translateY(-50%)' }}>
+          <motion.div style={{ opacity: capMotif.opacity, y: capMotif.y }}>
+            <TargetRings className="w-full h-auto" />
+          </motion.div>
+        </div>
+        <div className="relative max-w-4xl mx-auto">
+          <motion.h2
+            {...fadeUp}
+            className="dz-heading font-bold mb-16 md:mb-20"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', lineHeight: 1.05, color: PAPER }}
+          >
+            Everything you need to win.
+          </motion.h2>
+
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#2D6A2D' }}>
-              Draft simulator
-            </div>
-            <h2 className="dz-heading text-3xl md:text-4xl font-bold mb-4 leading-tight" style={{ color: '#1A1814' }}>
-              Draft against a friend or the AI
-            </h2>
-            <p className="text-sm mb-6 leading-relaxed" style={{ color: '#3E4A38' }}>
-              A full mock draft board pulling real NFL players — with an AI Scout chatting alongside you the whole way, so you never pick blind.
-            </p>
-            <ul className="space-y-3">
-              {[
-                'Real NFL player pool with live stats',
-                'PvP or Player-vs-AI draft modes',
-                'Auto roster slotting, round by round',
-                'AI Scout answers questions on any pick',
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-sm" style={{ color: '#1A1814' }}>
-                  <Check size={16} style={{ color: '#2D6A2D', flexShrink: 0 }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div
-            className="rounded-2xl p-4"
-            style={{ background: '#FDFAF5', border: '1px solid rgba(26,24,20,0.08)', boxShadow: '0 20px 50px rgba(26,24,20,0.12)' }}
-          >
-            <div className="flex items-center justify-between mb-3 pb-3" style={{ borderBottom: '1px solid rgba(26,24,20,0.08)' }}>
-              <span className="dz-heading text-sm font-semibold" style={{ color: '#1A1814' }}>Round 2 · Pick 3</span>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ color: '#2D6A2D', background: '#EBF5EB' }}>Your pick</span>
-            </div>
-            {[
-              { name: 'Christian McCaffrey', pos: 'RB', posColor: '#389E0D', posBg: '#F6FFED', pts: '24.6' },
-              { name: "Ja'Marr Chase", pos: 'WR', posColor: '#096DD9', posBg: '#E6F7FF', pts: '22.1' },
-              { name: 'Travis Kelce', pos: 'TE', posColor: '#D46B08', posBg: '#FFF7E6', pts: '17.4' },
-            ].map((p) => (
-              <div key={p.name} className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(26,24,20,0.05)' }}>
-                <div className="w-8 h-8 rounded-full" style={{ background: '#E8E2D5' }} />
-                <span className="flex-1 text-xs" style={{ color: '#1A1814' }}>{p.name}</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: p.posColor, background: p.posBg }}>{p.pos}</span>
-                <span className="text-xs font-mono" style={{ color: '#6B6456' }}>{p.pts}</span>
-              </div>
-            ))}
-            <div className="mt-3 rounded-lg p-3" style={{ background: '#EBF5EB' }}>
-              <div className="text-[10px] font-semibold mb-1" style={{ color: '#2D6A2D' }}>AI SCOUT</div>
-              <div className="text-xs leading-relaxed" style={{ color: '#1A4A1E' }}>
-                McCaffrey's the clear top pick — your WR room is already covered.
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ODDS + BETTING */}
-      <section className="relative py-24 px-6" style={{ background: '#F5F2EC' }}>
-        <motion.div {...fadeUp} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div
-            className="rounded-2xl p-4 order-2 md:order-1"
-            style={{ background: '#FDFAF5', border: '1px solid rgba(26,24,20,0.08)', boxShadow: '0 20px 50px rgba(26,24,20,0.1)' }}
-          >
-            <div className="text-[10px] font-semibold mb-3 tracking-wider" style={{ color: '#A89E8E' }}>LIVE ODDS</div>
-            {[
-              { team: 'Bills @ Chiefs', line: 'BUF -2.5', trend: 'up' },
-              { team: 'Eagles @ Cowboys', line: 'PHI -3.5', trend: 'down' },
-            ].map((g) => (
-              <div key={g.team} className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(26,24,20,0.06)' }}>
-                <span className="text-xs" style={{ color: '#1A1814' }}>{g.team}</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-mono font-medium" style={{ color: '#1A1814' }}>{g.line}</span>
-                  {g.trend === 'up'
-                    ? <TrendingUp size={13} style={{ color: '#2D6A2D' }} />
-                    : <TrendingDown size={13} style={{ color: '#C4570A' }} />}
+            {CAPABILITIES.map((cap, i) => (
+              <motion.div
+                key={cap.title}
+                {...fadeUpSm(i * 0.1)}
+                className="group flex flex-col md:flex-row md:items-baseline md:justify-between gap-3 md:gap-10 py-9"
+                style={{ borderTop: i > 0 ? `1px solid ${HAIRLINE}` : undefined }}
+              >
+                <div className="flex flex-col md:flex-row md:items-baseline gap-3 md:gap-10">
+                  <span className="dz-heading font-bold flex-shrink-0" style={{ fontSize: '2.25rem', color: 'rgba(245,245,247,0.18)', minWidth: '3.5rem' }}>
+                    0{i + 1}
+                  </span>
+                  <div>
+                    <h3 className="dz-heading text-xl font-semibold mb-2" style={{ color: PAPER }}>
+                      {cap.title}
+                    </h3>
+                    <p className="text-sm md:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(245,245,247,0.55)' }}>
+                      {cap.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
+                <Link
+                  to={cap.to}
+                  className={`inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap md:pl-6 rounded ${FOCUS_RING}`}
+                  style={{ color: ACCENT }}
+                >
+                  {cap.cta}
+                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                </Link>
+              </motion.div>
             ))}
-            <div className="mt-3 rounded-lg p-3 flex items-center gap-3" style={{ background: '#EBF5EB' }}>
-              <Wallet size={18} style={{ color: '#2D6A2D', flexShrink: 0 }} />
-              <div>
-                <div className="text-xs font-semibold" style={{ color: '#1A1814' }}>Bet placed — BUF -2.5</div>
-                <div className="text-[10px]" style={{ color: '#6B6456' }}>$25 to win $46.60</div>
-              </div>
-            </div>
           </div>
-
-          <div className="order-1 md:order-2">
-            <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#2D6A2D' }}>
-              Odds &amp; betting
-            </div>
-            <h2 className="dz-heading text-3xl md:text-4xl font-bold mb-4 leading-tight" style={{ color: '#1A1814' }}>
-              Bet smarter with live odds
-            </h2>
-            <p className="text-sm mb-6 leading-relaxed" style={{ color: '#4A4638' }}>
-              Browse real-time spreads and moneylines, place your bets, and keep every wager organized in one dashboard.
-            </p>
-            <ul className="space-y-3">
-              {[
-                'Real-time spreads, moneylines, and totals',
-                'Place bets in a couple of taps',
-                'Full bet history and running balance',
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-sm" style={{ color: '#1A1814' }}>
-                  <Check size={16} style={{ color: '#2D6A2D', flexShrink: 0 }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* CTA */}
-      <section className="relative py-28 px-6 overflow-hidden" style={{ background: '#F5F2EC' }}>
-        <div className="absolute rounded-full pointer-events-none" style={{ top: '10%', left: '50%', width: 500, height: 500, transform: 'translateX(-50%)', background: '#2D6A2D', opacity: 0.16, filter: 'blur(110px)' }} />
-
-        <motion.div
-          {...fadeUp}
-          className="relative max-w-4xl mx-auto text-center rounded-3xl px-10 py-16"
-          style={{
-            background: 'rgba(26,24,20,0.82)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 24px 60px rgba(26,24,20,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
-          }}
-        >
-          <h2 className="dz-heading text-3xl md:text-4xl font-bold mb-4" style={{ color: '#FDFAF5' }}>
-            Ready to dominate your draft?
+      <section ref={ctaRef} className="relative overflow-hidden py-28 md:py-36 px-6 text-center" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="absolute pointer-events-none" style={{ top: '50%', left: '50%', width: 'min(70vw, 800px)', transform: 'translate(-50%, -50%)' }}>
+          <motion.div style={{ opacity: ctaMotif.opacity, y: ctaMotif.y }}>
+            <StadiumRings className="w-full h-auto" />
+          </motion.div>
+        </div>
+        <motion.div {...fadeUp} className="relative max-w-3xl mx-auto">
+          <h2
+            className="dz-heading font-extrabold uppercase mb-6"
+            style={{ fontSize: 'clamp(2.25rem, 6vw, 4.5rem)', lineHeight: 1, color: PAPER }}
+          >
+            Ready to build
+            <br />
+            a roster that wins?
           </h2>
-          <p className="text-base mb-8 max-w-xl mx-auto" style={{ color: '#C7C2B4' }}>
-            Join thousands of fantasy managers who trust DraftZone.
+          <p className="text-base mb-10 max-w-xl mx-auto" style={{ color: 'rgba(245,245,247,0.55)' }}>
+            Join fantasy managers who draft smarter with DraftZone.
           </p>
           <Link
             to="/draft"
-            className="inline-block px-8 py-3.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
-            style={{ background: '#3FCB6E', color: '#0C2313' }}
+            className={`inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity ${FOCUS_RING}`}
+            style={{ background: ACCENT, color: '#062012' }}
           >
-            Start Your Draft Legacy
+            Start Your Draft <ArrowRight size={16} />
           </Link>
         </motion.div>
       </section>
 
       {/* FOOTER */}
-      <footer className="relative px-6 pt-16 pb-8" style={{ background: '#1A1814' }}>
+      <footer className="relative px-6 pt-16 pb-8" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-3">
-                <Logo size={28} />
-                <span className="dz-wordmark text-xl" style={{ color: '#FDFAF5' }}>
-                  DRAFT<span style={{ color: '#3FCB6E' }}>ZONE</span>
+                <Logo size={26} />
+                <span className="dz-wordmark text-lg" style={{ color: PAPER }}>
+                  DRAFT<span style={{ color: ACCENT }}>ZONE</span>
                 </span>
               </div>
-              <p className="text-sm max-w-xs leading-relaxed" style={{ color: '#8A8272' }}>
+              <p className="text-sm max-w-xs leading-relaxed" style={{ color: 'rgba(245,245,247,0.45)' }}>
                 AI-powered mock drafts and live odds tracking for fantasy football managers.
               </p>
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#8A8272' }}>Product</div>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.4)' }}>Product</div>
               <div className="flex flex-col gap-2.5">
                 {[{ label: 'Draft simulator', to: '/draft' }, { label: 'Player search', to: '/player-search' }, { label: 'Odds', to: '/odds' }, { label: 'My bets', to: '/my-bets' }].map((l) => (
-                  <Link key={l.label} to={l.to} className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#C7C2B4' }}>
+                  <Link key={l.label} to={l.to} className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>
                     {l.label}
                   </Link>
                 ))}
@@ -486,16 +598,16 @@ export default function Home({ user, onLogout }) {
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#8A8272' }}>Project</div>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'rgba(245,245,247,0.4)' }}>Project</div>
               <div className="flex flex-col gap-2.5">
-                <Link to="/authors" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#C7C2B4' }}>Authors</Link>
-                <Link to="/login" className="text-sm hover:opacity-80 transition-opacity" style={{ color: '#C7C2B4' }}>Log in</Link>
+                <Link to="/authors" className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Authors</Link>
+                <Link to="/login" className={`text-sm hover:opacity-80 transition-opacity rounded ${FOCUS_RING}`} style={{ color: 'rgba(245,245,247,0.6)' }}>Log in</Link>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-xs" style={{ color: '#6B6456' }}>© 2025 DraftZone. Built as a class project.</span>
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+            <span className="text-xs" style={{ color: 'rgba(245,245,247,0.4)' }}>© 2025 DraftZone. Built as a class project.</span>
           </div>
         </div>
       </footer>
